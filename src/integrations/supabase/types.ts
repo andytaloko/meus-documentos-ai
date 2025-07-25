@@ -14,7 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      conversations: {
+        Row: {
+          collected_data: Json | null
+          created_at: string
+          current_step: number | null
+          id: string
+          messages: Json | null
+          service_type: string | null
+          session_id: string
+          status: string | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          collected_data?: Json | null
+          created_at?: string
+          current_step?: number | null
+          id?: string
+          messages?: Json | null
+          service_type?: string | null
+          session_id: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          collected_data?: Json | null
+          created_at?: string
+          current_step?: number | null
+          id?: string
+          messages?: Json | null
+          service_type?: string | null
+          session_id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          created_at: string
+          customer_cpf: string | null
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          document_data: Json | null
+          estimated_completion_date: string | null
+          id: string
+          notes: string | null
+          payment_status: string | null
+          service_id: string | null
+          status: string | null
+          total_amount: number | null
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          document_data?: Json | null
+          estimated_completion_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_status?: string | null
+          service_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          customer_cpf?: string | null
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          document_data?: Json | null
+          estimated_completion_date?: string | null
+          id?: string
+          notes?: string | null
+          payment_status?: string | null
+          service_id?: string | null
+          status?: string | null
+          total_amount?: number | null
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      services: {
+        Row: {
+          active: boolean | null
+          base_price: number | null
+          category: string
+          created_at: string
+          description: string | null
+          estimated_days: number | null
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean | null
+          base_price?: number | null
+          category: string
+          created_at?: string
+          description?: string | null
+          estimated_days?: number | null
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean | null
+          base_price?: number | null
+          category?: string
+          created_at?: string
+          description?: string | null
+          estimated_days?: number | null
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
