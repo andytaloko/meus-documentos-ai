@@ -79,21 +79,21 @@ const PaymentSuccess = () => {
   const quickActions = [
     {
       id: 'home',
-      icon: Home,
+      icon: <Home className="w-4 h-4" />,
       label: 'Início',
       onClick: () => { window.location.href = '/'; },
       variant: 'outline' as const
     },
     {
       id: 'print',
-      icon: Printer,
+      icon: <Printer className="w-4 h-4" />,
       label: 'Imprimir',
       onClick: () => { window.print(); },
       variant: 'default' as const
     },
     {
       id: 'whatsapp',
-      icon: MessageCircle,
+      icon: <MessageCircle className="w-4 h-4" />,
       label: 'WhatsApp',
       onClick: () => { window.open('https://wa.me/5511999999999', '_blank'); },
       variant: 'outline' as const
@@ -133,12 +133,13 @@ const PaymentSuccess = () => {
               Erro na verificação
             </StatusBadge>
             <ActionButton
-              label="Voltar ao início"
-              icon={Home}
-              onClick={() => window.location.href = '/'}
+              icon={<Home className="w-4 h-4" />}
+              onClick={() => { window.location.href = '/'; }}
               variant="default"
               className="w-full"
-            />
+            >
+              Voltar ao início
+            </ActionButton>
           </CardContent>
         </Card>
       </div>

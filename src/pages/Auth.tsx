@@ -73,7 +73,7 @@ export default function Auth() {
 
   const authSteps = [
     { id: 'choose', label: 'Escolher', completed: true },
-    { id: 'fill', label: 'Preencher', completed: activeTab !== 'signin' || (email && password) },
+    { id: 'fill', label: 'Preencher', completed: Boolean(activeTab !== 'signin' || (email && password)) },
     { id: 'access', label: 'Acessar', completed: false }
   ];
 

@@ -26,27 +26,31 @@ const NotFound = () => {
 
   const quickActions = [
     {
-      icon: Home,
+      id: 'home',
+      icon: <Home className="w-4 h-4" />,
       label: 'Página Inicial',
       onClick: () => navigate('/'),
       variant: 'default' as const
     },
     {
-      icon: ArrowLeft,
+      id: 'back',
+      icon: <ArrowLeft className="w-4 h-4" />,
       label: 'Voltar',
       onClick: () => navigate(-1),
       variant: 'outline' as const
     },
     {
-      icon: Search,
+      id: 'search',
+      icon: <Search className="w-4 h-4" />,
       label: 'Buscar',
       onClick: () => navigate('/dashboard'),
       variant: 'outline' as const
     },
     {
-      icon: MessageCircle,
+      id: 'support',
+      icon: <MessageCircle className="w-4 h-4" />,
       label: 'Suporte',
-      onClick: () => window.open('https://wa.me/5511999999999?text=Olá, estou tendo problemas para acessar uma página', '_blank'),
+      onClick: () => { window.open('https://wa.me/5511999999999?text=Olá, estou tendo problemas para acessar uma página', '_blank'); },
       variant: 'outline' as const
     }
   ];

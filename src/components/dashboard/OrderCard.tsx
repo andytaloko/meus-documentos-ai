@@ -169,12 +169,11 @@ Como posso te ajudar com este pedido? 🤔`
         </div>
 
         {/* Quick Actions */}
-        <QuickActions 
-          actions={cardActions}
-          size="sm"
-          maxActions={isMobile ? 2 : 3}
-          compact={isMobile}
-        />
+          <QuickActions 
+            actions={cardActions}
+            size="sm"
+            maxActions={isMobile ? 2 : 3}
+          />
 
         {/* Order ID */}
         <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">

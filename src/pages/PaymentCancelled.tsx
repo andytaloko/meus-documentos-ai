@@ -14,21 +14,24 @@ const PaymentCancelled = () => {
 
   const quickActions = [
     {
-      icon: RefreshCw,
+      id: 'retry',
+      icon: <RefreshCw className="w-4 h-4" />,
       label: 'Tentar novamente',
-      onClick: () => window.location.href = '/',
+      onClick: () => { window.location.href = '/'; },
       variant: 'default' as const
     },
     {
-      icon: MessageCircle,
+      id: 'support',
+      icon: <MessageCircle className="w-4 h-4" />,
       label: 'Suporte',
-      onClick: () => window.open('https://wa.me/5511999999999?text=Olá, tive um problema com o pagamento do meu pedido', '_blank'),
+      onClick: () => { window.open('https://wa.me/5511999999999?text=Olá, tive um problema com o pagamento do meu pedido', '_blank'); },
       variant: 'outline' as const
     },
     {
-      icon: Home,
+      id: 'home',
+      icon: <Home className="w-4 h-4" />,
       label: 'Início',
-      onClick: () => window.location.href = '/',
+      onClick: () => { window.location.href = '/'; },
       variant: 'outline' as const
     }
   ];

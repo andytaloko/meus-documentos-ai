@@ -105,7 +105,8 @@ export default function Profile() {
 
   const quickActions = [
     {
-      icon: Save,
+      id: 'save',
+      icon: <Save className="w-4 h-4" />,
       label: 'Salvar',
       onClick: () => {
         const form = document.querySelector('form') as HTMLFormElement;
@@ -115,7 +116,8 @@ export default function Profile() {
       disabled: saving
     },
     {
-      icon: Settings,
+      id: 'settings',
+      icon: <Settings className="w-4 h-4" />,
       label: 'Configurações',
       onClick: () => navigate('/settings'),
       variant: 'outline' as const
