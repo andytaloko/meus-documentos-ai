@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signUp = async (email: string, password: string, displayName?: string) => {
     const redirectUrl = `${window.location.origin}/`;
     
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -59,6 +59,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         },
       },
     });
+
+    // If signup successful and user exists, link any existing guest orders
+    if (!error && data.user) {
+      try {
+        await supabase.rpc('link_guest_orders_to_user', {
+          user_email: email,
+          user_id_param: data.user.id
+        });
+      } catch (linkError) {
+        console.warn('Could not link existing orders:', linkError);
+        // Don't fail signup for this
+      }
+    }
+    
     return { error };
   };
 

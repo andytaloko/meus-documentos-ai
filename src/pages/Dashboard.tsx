@@ -3,11 +3,13 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Separator } from '@/components/ui/separator';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { FileText, Clock, CheckCircle, CreditCard, User, LogOut, Plus } from 'lucide-react';
+import { FileText, Clock, CheckCircle, CreditCard, User, LogOut, Plus, Search, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface Order {
@@ -48,8 +50,11 @@ const paymentStatusConfig = {
 
 export default function Dashboard() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [filteredOrders, setFilteredOrders] = useState<Order[]>([]);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -63,6 +68,26 @@ export default function Dashboard() {
     fetchUserData();
     setupRealtimeSubscription();
   }, [user, navigate]);
+
+  // Filter orders based on search term and status
+  useEffect(() => {
+    let filtered = orders;
+
+    if (searchTerm) {
+      filtered = filtered.filter(order => 
+        order.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.services?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.id.toLowerCase().includes(searchTerm.toLowerCase())
+      );
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(order => order.status === statusFilter);
+    }
+
+    setFilteredOrders(filtered);
+  }, [orders, searchTerm, statusFilter]);
 
   const fetchUserData = async () => {
     try {
@@ -223,6 +248,54 @@ export default function Dashboard() {
           </Card>
         </div>
 
+        {/* Search and Filter Section */}
+        {orders.length > 0 && (
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Filter className="h-5 w-5" />
+                Filtros e Busca
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nome, email, serviço ou ID..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filtrar por status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os status</SelectItem>
+                    <SelectItem value="pending">Pendente</SelectItem>
+                    <SelectItem value="processing">Em processamento</SelectItem>
+                    <SelectItem value="completed">Concluído</SelectItem>
+                    <SelectItem value="cancelled">Cancelado</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              {searchTerm || statusFilter !== 'all' ? (
+                <div className="text-sm text-muted-foreground">
+                  {filteredOrders.length === 1 
+                    ? `1 pedido encontrado` 
+                    : `${filteredOrders.length} pedidos encontrados`
+                  }
+                  {searchTerm && ` para "${searchTerm}"`}
+                  {statusFilter !== 'all' && ` com status "${statusFilter}"`}
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+        )}
+
         {/* Orders List */}
         <Card>
           <CardHeader>
@@ -238,9 +311,32 @@ export default function Dashboard() {
                   Fazer Primeiro Pedido
                 </Button>
               </div>
+            ) : filteredOrders.length === 0 ? (
+              <div className="text-center py-8">
+                <FileText className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <h3 className="text-lg font-medium">Nenhum pedido encontrado</h3>
+                <p className="text-muted-foreground">
+                  {searchTerm || statusFilter !== 'all' 
+                    ? 'Tente ajustar os filtros de busca'
+                    : 'Seus pedidos aparecerão aqui'
+                  }
+                </p>
+                {(searchTerm || statusFilter !== 'all') && (
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      setSearchTerm('');
+                      setStatusFilter('all');
+                    }}
+                    className="mt-4"
+                  >
+                    Limpar filtros
+                  </Button>
+                )}
+              </div>
             ) : (
               <div className="space-y-4">
-                {orders.map((order) => {
+                {filteredOrders.map((order) => {
                   const StatusIcon = statusConfig[order.status as keyof typeof statusConfig]?.icon || FileText;
                   
                   return (

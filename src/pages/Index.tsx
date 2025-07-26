@@ -99,7 +99,7 @@ const Index = () => {
                 <>
                   <Button 
                     variant="outline"
-                    onClick={() => navigate('/auth')}
+                    onClick={() => navigate('/auth/login')}
                   >
                     <LogIn className="h-4 w-4 mr-2" />
                     Entrar
