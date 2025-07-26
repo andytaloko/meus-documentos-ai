@@ -4,9 +4,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
-import { ChatBotProvider } from "@/contexts/ChatBotContext";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
-import { FloatingChatButton } from "@/components/chat/FloatingChatButton";
+import FloatingChatTrigger from "@/components/chat/FloatingChatTrigger";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Login from "./pages/Login";
@@ -41,21 +40,19 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <ChatBotProvider>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/auth/login" element={<Login />} />
-              <Route path="/auth/signup" element={<Signup />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/payment/success" element={<PaymentSuccess />} />
-              <Route path="/payment/cancelled" element={<PaymentCancelled />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-            <ConditionalNotificationCenter />
-            <FloatingChatButton />
-          </ChatBotProvider>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/auth/login" element={<Login />} />
+            <Route path="/auth/signup" element={<Signup />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/payment/success" element={<PaymentSuccess />} />
+            <Route path="/payment/cancelled" element={<PaymentCancelled />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <ConditionalNotificationCenter />
+          <FloatingChatTrigger />
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

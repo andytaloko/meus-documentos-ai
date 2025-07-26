@@ -7,7 +7,7 @@ import { ProgressTracker } from "@/components/common/ProgressTracker";
 import { useOrderStatus } from "@/hooks/useOrderStatus";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { Clock, CreditCard, MessageSquare, Eye, FileText } from "lucide-react";
-import { useChatBot } from "@/contexts/ChatBotContext";
+// import { useChatBot } from "@/contexts/ChatBotContext"; // Temporarily removed
 
 interface Order {
   id: string;
@@ -33,32 +33,13 @@ interface OrderCardProps {
 
 
 export function OrderCard({ order, onViewDetails }: OrderCardProps) {
-  const { setIsOpen, addMessage } = useChatBot();
+  // const { setIsOpen, addMessage } = useChatBot(); // Temporarily removed
   const orderStatus = useOrderStatus(order.status as any);
   const { isMobile, getCardSize } = useResponsiveLayout();
 
   const handleChatAboutOrder = () => {
-    addMessage({
-      type: 'user',
-      content: `Preciso de ajuda com o pedido #${order.id.slice(-8).toUpperCase()}`
-    });
-    
-    setTimeout(() => {
-      addMessage({
-        type: 'bot',
-        content: `📋 **Informações do Pedido #${order.id.slice(-8).toUpperCase()}**
-
-**Serviço:** ${order.services?.name || 'Serviço'}
-**Status:** ${orderStatus.label}
-**Pagamento:** ${order.payment_status === 'paid' ? 'Pago' : 'Pendente'}
-**Valor:** R$ ${(order.total_amount / 100).toFixed(2)}
-**Data do pedido:** ${new Date(order.created_at).toLocaleDateString('pt-BR')}
-
-Como posso te ajudar com este pedido? 🤔`
-      });
-    }, 1000);
-    
-    setIsOpen(true);
+    // Temporarily disabled - will be fixed later
+    console.log('Chat about order:', order.id);
   };
 
   const formatPrice = (amount: number) => {

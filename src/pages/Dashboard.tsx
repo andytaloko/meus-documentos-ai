@@ -14,8 +14,6 @@ import { useToast } from '@/hooks/use-toast';
 import { OrderCard } from '@/components/dashboard/OrderCard';
 import { OrderDetailsModal } from '@/components/dashboard/OrderDetailsModal';
 import { LoadingSkeleton } from '@/components/dashboard/LoadingSkeleton';
-import { FloatingChatButton } from '@/components/chat/FloatingChatButton';
-import { ChatPanel } from '@/components/chat/ChatPanel';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
 interface Order {
@@ -396,9 +394,6 @@ export default function Dashboard() {
         }}
       />
 
-      {/* Persistent ChatBot */}
-      <FloatingChatButton />
-      <ChatPanel />
     </>
   );
 }
