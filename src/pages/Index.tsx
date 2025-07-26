@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -51,13 +52,13 @@ const Index = () => {
                 <FileText className="h-6 w-6 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
+                <h1 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-foreground to-primary bg-clip-text text-transparent">
                   MeusDocumentos.AI
                 </h1>
-                <p className="text-sm text-muted-foreground">Documentos oficiais com IA</p>
+                <p className="text-xs sm:text-sm text-muted-foreground">Documentos oficiais com IA</p>
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2">
               {user && (
                 <div className="hidden sm:block">
                   <NotificationCenter />
@@ -69,17 +70,19 @@ const Index = () => {
                   <Button 
                     variant="outline"
                     onClick={() => navigate('/dashboard')}
-                    className={`${isMobile ? 'w-full' : ''} hover-scale`}
+                    size={isMobile ? "sm" : "default"}
+                    className="hover-scale px-2 sm:px-4"
                   >
-                    <User className="h-4 w-4 mr-2" />
-                    {isMobile ? 'Dashboard' : 'Meus Pedidos'}
+                    <User className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Meus Pedidos</span>
                   </Button>
                   <Button 
                     onClick={handleStartChat}
-                    className={`hover-scale ${isMobile ? 'w-full' : ''} bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow`}
+                    size={isMobile ? "sm" : "default"}
+                    className="hover-scale bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow px-2 sm:px-4"
                   >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    {isMobile ? 'Chat' : 'Novo Pedido'}
+                    <MessageCircle className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Novo Pedido</span>
                   </Button>
                 </>
               ) : (
@@ -87,17 +90,19 @@ const Index = () => {
                   <Button 
                     variant="outline"
                     onClick={() => navigate('/auth/login')}
-                    className={`${isMobile ? 'w-full' : ''} hover-scale`}
+                    size={isMobile ? "sm" : "default"}
+                    className="hover-scale px-2 sm:px-4"
                   >
-                    <LogIn className="h-4 w-4 mr-2" />
-                    Entrar
+                    <LogIn className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Entrar</span>
                   </Button>
                   <Button 
                     onClick={handleStartChat}
-                    className={`hover-scale ${isMobile ? 'w-full' : ''} bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow`}
+                    size={isMobile ? "sm" : "default"}
+                    className="hover-scale bg-gradient-to-r from-primary to-primary-glow hover:shadow-glow px-2 sm:px-4"
                   >
-                    <MessageCircle className="h-4 w-4 mr-2" />
-                    {isMobile ? 'Assistente' : 'Fale com nosso Assistente'}
+                    <MessageCircle className="h-4 w-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Fale com nosso Assistente</span>
                   </Button>
                 </>
               )}
