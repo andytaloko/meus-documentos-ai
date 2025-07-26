@@ -6,22 +6,29 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, X, Loader2, Command } from "lucide-react";
+import { Send, Bot, User, X, Loader2, Command, FileText, Clock, DollarSign } from "lucide-react";
 import { useChatBot } from "@/contexts/ChatBotContext";
 import { useAuth } from "@/hooks/useAuth";
-
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { cn } from "@/lib/utils";
+import { PaymentModalIntegration } from "./PaymentModalIntegration";
 
 export function ChatPanel() {
   const { 
     isOpen, 
     setIsOpen, 
     messages, 
-    addMessage, 
     isLoading,
     markAsRead,
-    clearMessages
+    clearMessages,
+    handleUserInput,
+    selectedService,
+    currentStep,
+    conversationData,
+    showPaymentModal,
+    setShowPaymentModal,
+    formatPrice,
+    CONVERSATION_STEPS
   } = useChatBot();
   
   
@@ -51,34 +58,24 @@ export function ChatPanel() {
     setInputMessage("");
     setShowCommands(false);
     
-    // Check if it's a command
+    // Check if it's a command first
     if (userMessage.startsWith('/')) {
       const response = handleCommand(userMessage);
       if (response) {
-        addMessage({
-          type: 'bot',
-          content: response
-        });
+        setTimeout(() => {
+          handleUserInput(response);
+        }, 500);
       }
       return;
     }
 
-    // Add user message to chat
-    addMessage({
-      type: 'user',
-      content: userMessage
-    });
-
-    // Generate bot response
+    // Use the intelligent conversation handler
     setIsTyping(true);
-    setTimeout(() => {
-      const botResponse = generateBotResponse(userMessage);
-      addMessage({
-        type: 'bot',
-        content: botResponse
-      });
+    try {
+      await handleUserInput(userMessage);
+    } finally {
       setIsTyping(false);
-    }, 1500);
+    }
   };
 
   const generateBotResponse = (userInput: string): string => {
@@ -196,9 +193,7 @@ Como posso te ajudar com algum pedido específico? 🤔`;
 
       case '/clear':
         clearMessages();
-        return `🧹 **Conversa Limpa**
-
-Conversa atual foi limpa! Como posso te ajudar agora? 😊`;
+        return null; // Don't add duplicate message
 
       case '/profile':
         return `👤 **Informações do Perfil**
@@ -258,8 +253,26 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                     Olá, {user?.email?.split('@')[0]}! 👋
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Como posso te ajudar hoje?
+                    Sou o assistente virtual do MeusDocumentos.AI. Como posso te ajudar hoje?
                   </p>
+                  {selectedService && (
+                    <div className="mt-4 p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2 text-sm">
+                        <FileText className="w-4 h-4 text-primary" />
+                        <span className="font-medium">{selectedService.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />
+                          <span>A partir de {formatPrice(selectedService.base_price)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{selectedService.estimated_days} dias</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -282,9 +295,19 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                       ? "bg-primary text-primary-foreground ml-auto"
                       : "bg-muted"
                   )}>
-                    <div className="text-sm whitespace-pre-wrap">
-                      {message.content}
+                    <div className="text-sm whitespace-pre-wrap markdown-content">
+                      {message.content.split('**').map((part, index) => 
+                        index % 2 === 0 ? part : <strong key={index}>{part}</strong>
+                      )}
                     </div>
+                    {message.service && (
+                      <div className="mt-2 p-2 bg-background/50 rounded border">
+                        <div className="flex items-center gap-2 text-xs">
+                          <FileText className="w-3 h-3" />
+                          <span className="font-medium">{message.service.name}</span>
+                        </div>
+                      </div>
+                    )}
                     <div className="text-xs opacity-70 mt-1">
                       {message.timestamp.toLocaleTimeString('pt-BR', { 
                         hour: '2-digit', 
@@ -366,6 +389,9 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
             </div>
           </div>
         </div>
+        
+        {/* Payment Modal Integration */}
+        <PaymentModalIntegration />
       </div>
     );
   }
@@ -407,8 +433,26 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                     Olá, {user?.email?.split('@')[0]}! 👋
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Como posso te ajudar hoje?
+                    Sou o assistente virtual do MeusDocumentos.AI. Como posso te ajudar hoje?
                   </p>
+                  {selectedService && (
+                    <div className="mt-4 p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2 text-sm">
+                        <FileText className="w-4 h-4 text-primary" />
+                        <span className="font-medium">{selectedService.name}</span>
+                      </div>
+                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <DollarSign className="w-3 h-3" />
+                          <span>A partir de {formatPrice(selectedService.base_price)}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>{selectedService.estimated_days} dias</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -425,22 +469,32 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                     </Avatar>
                   )}
                   
-                  <div className={cn(
-                    "max-w-[80%] p-3 rounded-lg text-sm",
-                    message.type === 'user' 
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  )}>
-                    <div className="whitespace-pre-wrap">
-                      {message.content}
-                    </div>
-                    <div className="text-xs opacity-70 mt-1">
-                      {message.timestamp.toLocaleTimeString('pt-BR', { 
-                        hour: '2-digit', 
-                        minute: '2-digit' 
-                      })}
-                    </div>
-                  </div>
+                   <div className={cn(
+                     "max-w-[80%] p-3 rounded-lg text-sm",
+                     message.type === 'user' 
+                       ? "bg-primary text-primary-foreground"
+                       : "bg-muted"
+                   )}>
+                     <div className="whitespace-pre-wrap markdown-content">
+                       {message.content.split('**').map((part, index) => 
+                         index % 2 === 0 ? part : <strong key={index}>{part}</strong>
+                       )}
+                     </div>
+                     {message.service && (
+                       <div className="mt-2 p-2 bg-background/50 rounded border">
+                         <div className="flex items-center gap-2 text-xs">
+                           <FileText className="w-3 h-3" />
+                           <span className="font-medium">{message.service.name}</span>
+                         </div>
+                       </div>
+                     )}
+                     <div className="text-xs opacity-70 mt-1">
+                       {message.timestamp.toLocaleTimeString('pt-BR', { 
+                         hour: '2-digit', 
+                         minute: '2-digit' 
+                       })}
+                     </div>
+                   </div>
 
                   {message.type === 'user' && (
                     <Avatar className="w-6 h-6 flex-shrink-0">
@@ -515,6 +569,9 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
           </div>
         </CardContent>
       </Card>
+      
+      {/* Payment Modal Integration */}
+      <PaymentModalIntegration />
     </div>
   );
 }
