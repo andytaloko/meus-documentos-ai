@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Send, Bot, User, X, FileText, Clock, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import PaymentModal from "./PaymentModal";
 
 interface Service {
   id: string;
@@ -48,6 +49,7 @@ const ChatBot = ({ isOpen, onClose, selectedService }: ChatBotProps) => {
   const [currentStep, setCurrentStep] = useState(CONVERSATION_STEPS.GREETING);
   const [conversationData, setConversationData] = useState<any>({});
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -311,33 +313,19 @@ Digite **PIX** ou **CARTAO** para escolher a forma de pagamento:`);
   const handleCheckout = (userInput: string) => {
     const paymentMethod = userInput.toUpperCase();
     
-    if (paymentMethod === 'PIX') {
-      addBotMessage(`💰 **Pagamento via PIX**
-
-Valor com desconto: ${formatPrice(conversationData.totalAmount * 0.95)}
-Economia: ${formatPrice(conversationData.totalAmount * 0.05)}
-
-🔗 Link para pagamento: [Clique aqui para pagar via PIX]
-
-Após o pagamento, envie o comprovante para agilizar o processo.
-
-Digite **COMPROVANTE** quando enviar o pagamento.`);
-    } else if (paymentMethod === 'CARTAO') {
-      addBotMessage(`💳 **Pagamento via Cartão**
-
-Valor total: ${formatPrice(conversationData.totalAmount)}
-
-🔗 Link para pagamento: [Clique aqui para pagar com cartão]
-
-O pagamento será processado automaticamente.
-
-Digite **PAGO** quando finalizar o pagamento.`);
+    if (paymentMethod === 'PIX' || paymentMethod === 'CARTAO') {
+      addBotMessage(`Perfeito! Abrindo o sistema de pagamento...`);
+      
+      // Abrir modal de pagamento
+      setTimeout(() => {
+        setShowPaymentModal(true);
+      }, 1000);
+      
+      setCurrentStep(CONVERSATION_STEPS.STATUS_TRACKING);
     } else {
       addBotMessage("Por favor, digite **PIX** ou **CARTAO** para escolher a forma de pagamento.");
       return;
     }
-
-    setCurrentStep(CONVERSATION_STEPS.STATUS_TRACKING);
   };
 
   const handleStatusTracking = (userInput: string) => {
@@ -538,6 +526,23 @@ Tempo restante estimado: ${conversationData.selectedService.estimated_days - 1} 
           </div>
         </div>
       </DialogContent>
+      
+      {conversationData.selectedService && (
+        <PaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          serviceId={conversationData.selectedService.id}
+          serviceName={conversationData.selectedService.name}
+          amount={conversationData.totalAmount || 0}
+          customerData={{
+            name: conversationData.customerName || '',
+            email: conversationData.customerEmail || '',
+            phone: conversationData.customerPhone || '',
+            cpf: conversationData.customerCPF || '',
+            documentData: conversationData
+          }}
+        />
+      )}
     </Dialog>
   );
 };
