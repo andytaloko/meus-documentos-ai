@@ -28,7 +28,9 @@ export function ChatPanel() {
     showPaymentModal,
     setShowPaymentModal,
     formatPrice,
-    CONVERSATION_STEPS
+    CONVERSATION_STEPS,
+    addBotMessage,
+    addUserMessage
   } = useChatBot();
   
   
@@ -62,91 +64,23 @@ export function ChatPanel() {
     if (userMessage.startsWith('/')) {
       const response = handleCommand(userMessage);
       if (response) {
+        // Add user message first
+        addUserMessage(userMessage);
+        // Add bot response for commands
         setTimeout(() => {
-          handleUserInput(response);
+          addBotMessage(response);
         }, 500);
       }
       return;
     }
 
-    // Use the intelligent conversation handler
+    // Use the intelligent conversation handler from context
     setIsTyping(true);
     try {
       await handleUserInput(userMessage);
     } finally {
       setIsTyping(false);
     }
-  };
-
-  const generateBotResponse = (userInput: string): string => {
-    const input = userInput.toLowerCase();
-    
-    // Status queries
-    if (input.includes('status') || input.includes('pedido')) {
-      return `📊 **Seus Pedidos Ativos**
-
-Para verificar o status específico de um pedido, você pode:
-• Consultar a dashboard principal
-• Me informar o número do pedido
-• Acessar seu perfil
-
-Como posso te ajudar especificamente? 🤔`;
-    }
-    
-    // Profile/data updates
-    if (input.includes('email') || input.includes('telefone') || input.includes('dados')) {
-      return `📝 **Atualização de Dados**
-
-Para atualizar seus dados pessoais:
-1. Acesse seu **Perfil** no menu superior
-2. Edite as informações necessárias
-3. Salve as alterações
-
-Suas informações são protegidas e apenas você pode alterá-las. 🔒`;
-    }
-    
-    // Payment help
-    if (input.includes('pagamento') || input.includes('pagar')) {
-      return `💳 **Ajuda com Pagamentos**
-
-**Formas de pagamento disponíveis:**
-• PIX (desconto de 5%)
-• Cartão de crédito/débito
-
-**Problemas com pagamento?**
-• Verifique os dados do cartão
-• Confirme se há limite disponível
-• Tente novamente em alguns minutos
-
-Precisa de mais ajuda? Me diga qual é o problema específico! 💪`;
-    }
-    
-    // General help
-    if (input.includes('ajuda') || input.includes('help')) {
-      return `🤝 **Como posso te ajudar?**
-
-**Principais tópicos:**
-• 📋 Status de pedidos
-• 💳 Ajuda com pagamentos  
-• 📝 Atualização de dados
-• 📞 Novo pedido
-• ❓ Dúvidas gerais
-
-Digite sua dúvida ou escolha um dos tópicos acima! 😊`;
-    }
-    
-    // Default response
-    return `Olá! 👋 
-
-Entendi que você quer saber sobre: **"${userInput}"**
-
-Posso te ajudar com:
-• Status de pedidos
-• Informações de pagamento
-• Atualização de dados pessoais
-• Fazer novos pedidos
-
-Me diga como posso te ajudar melhor! 😊`;
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -236,6 +170,13 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                 <p className="text-xs text-muted-foreground">
                   {isTyping ? "Digitando..." : "Online"}
                 </p>
+                {selectedService && conversationData?.selectedService && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <Badge variant="secondary" className="text-xs">
+                      Etapa {currentStep}/8
+                    </Badge>
+                  </div>
+                )}
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
@@ -413,6 +354,13 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                 <p className="text-xs text-muted-foreground">
                   {isTyping ? "Digitando..." : "Online"}
                 </p>
+                {selectedService && conversationData?.selectedService && (
+                  <div className="flex items-center gap-1 mt-1">
+                    <Badge variant="secondary" className="text-xs">
+                      Etapa {currentStep}/8
+                    </Badge>
+                  </div>
+                )}
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
