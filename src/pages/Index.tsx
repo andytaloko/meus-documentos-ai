@@ -114,9 +114,9 @@ const Index = () => {
       {/* Main content */}
       <main className="pt-20">
         <HeroSection onStartChat={handleStartChat} />
-        <BenefitsSection />
-        <ServicesSection onServiceSelect={handleServiceSelect} />
         <ProcessSection />
+        <ServicesSection onServiceSelect={handleServiceSelect} />
+        <BenefitsSection />
         <TrustSection />
       </main>
 
