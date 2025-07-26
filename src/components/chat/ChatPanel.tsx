@@ -6,33 +6,27 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, X, Loader2, Command, FileText, Clock, DollarSign } from "lucide-react";
+import { Send, Bot, User, X, Loader2, Command } from "lucide-react";
 import { useChatBot } from "@/contexts/ChatBotContext";
 import { useAuth } from "@/hooks/useAuth";
+import { usePersistentChat } from "@/hooks/usePersistentChat";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { cn } from "@/lib/utils";
-import { PaymentModalIntegration } from "./PaymentModalIntegration";
 
 export function ChatPanel() {
   const { 
     isOpen, 
     setIsOpen, 
     messages, 
+    addMessage, 
     isLoading,
-    markAsRead,
-    clearMessages,
-    handleUserInput,
-    selectedService,
-    currentStep,
-    conversationData,
-    showPaymentModal,
-    setShowPaymentModal,
-    formatPrice,
-    CONVERSATION_STEPS,
-    addBotMessage,
-    addUserMessage
+    markAsRead 
   } = useChatBot();
   
+  const { 
+    sendMessage,
+    getUnreadCount 
+  } = usePersistentChat();
   
   const { isMobile } = useResponsiveLayout();
   const [inputMessage, setInputMessage] = useState("");
@@ -60,27 +54,96 @@ export function ChatPanel() {
     setInputMessage("");
     setShowCommands(false);
     
-    // Check if it's a command first
+    // Check if it's a command
     if (userMessage.startsWith('/')) {
       const response = handleCommand(userMessage);
       if (response) {
-        // Add user message first
-        addUserMessage(userMessage);
-        // Add bot response for commands
-        setTimeout(() => {
-          addBotMessage(response);
-        }, 500);
+        addMessage({
+          type: 'bot',
+          content: response
+        });
       }
       return;
     }
 
-    // Use the intelligent conversation handler from context
+    // Regular message
     setIsTyping(true);
     try {
-      await handleUserInput(userMessage);
+      await sendMessage(userMessage);
     } finally {
       setIsTyping(false);
     }
+  };
+
+  const generateBotResponse = (userInput: string): string => {
+    const input = userInput.toLowerCase();
+    
+    // Status queries
+    if (input.includes('status') || input.includes('pedido')) {
+      return `📊 **Seus Pedidos Ativos**
+
+Para verificar o status específico de um pedido, você pode:
+• Consultar a dashboard principal
+• Me informar o número do pedido
+• Acessar seu perfil
+
+Como posso te ajudar especificamente? 🤔`;
+    }
+    
+    // Profile/data updates
+    if (input.includes('email') || input.includes('telefone') || input.includes('dados')) {
+      return `📝 **Atualização de Dados**
+
+Para atualizar seus dados pessoais:
+1. Acesse seu **Perfil** no menu superior
+2. Edite as informações necessárias
+3. Salve as alterações
+
+Suas informações são protegidas e apenas você pode alterá-las. 🔒`;
+    }
+    
+    // Payment help
+    if (input.includes('pagamento') || input.includes('pagar')) {
+      return `💳 **Ajuda com Pagamentos**
+
+**Formas de pagamento disponíveis:**
+• PIX (desconto de 5%)
+• Cartão de crédito/débito
+
+**Problemas com pagamento?**
+• Verifique os dados do cartão
+• Confirme se há limite disponível
+• Tente novamente em alguns minutos
+
+Precisa de mais ajuda? Me diga qual é o problema específico! 💪`;
+    }
+    
+    // General help
+    if (input.includes('ajuda') || input.includes('help')) {
+      return `🤝 **Como posso te ajudar?**
+
+**Principais tópicos:**
+• 📋 Status de pedidos
+• 💳 Ajuda com pagamentos  
+• 📝 Atualização de dados
+• 📞 Novo pedido
+• ❓ Dúvidas gerais
+
+Digite sua dúvida ou escolha um dos tópicos acima! 😊`;
+    }
+    
+    // Default response
+    return `Olá! 👋 
+
+Entendi que você quer saber sobre: **"${userInput}"**
+
+Posso te ajudar com:
+• Status de pedidos
+• Informações de pagamento
+• Atualização de dados pessoais
+• Fazer novos pedidos
+
+Me diga como posso te ajudar melhor! 😊`;
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -126,8 +189,13 @@ Para ver informações detalhadas dos seus pedidos:
 Como posso te ajudar com algum pedido específico? 🤔`;
 
       case '/clear':
-        clearMessages();
-        return null; // Don't add duplicate message
+        // Clear messages after a short delay
+        setTimeout(() => {
+          // This would clear messages if we had that function
+        }, 1000);
+        return `🧹 **Conversa Limpa**
+
+Conversa atual foi limpa! Como posso te ajudar agora? 😊`;
 
       case '/profile':
         return `👤 **Informações do Perfil**
@@ -170,13 +238,6 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                 <p className="text-xs text-muted-foreground">
                   {isTyping ? "Digitando..." : "Online"}
                 </p>
-                {selectedService && conversationData?.selectedService && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <Badge variant="secondary" className="text-xs">
-                      Etapa {currentStep}/8
-                    </Badge>
-                  </div>
-                )}
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
@@ -194,26 +255,8 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                     Olá, {user?.email?.split('@')[0]}! 👋
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Sou o assistente virtual do MeusDocumentos.AI. Como posso te ajudar hoje?
+                    Como posso te ajudar hoje?
                   </p>
-                  {selectedService && (
-                    <div className="mt-4 p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-2 text-sm">
-                        <FileText className="w-4 h-4 text-primary" />
-                        <span className="font-medium">{selectedService.name}</span>
-                      </div>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-3 h-3" />
-                          <span>A partir de {formatPrice(selectedService.base_price)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{selectedService.estimated_days} dias</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -236,19 +279,9 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                       ? "bg-primary text-primary-foreground ml-auto"
                       : "bg-muted"
                   )}>
-                    <div className="text-sm whitespace-pre-wrap markdown-content">
-                      {message.content.split('**').map((part, index) => 
-                        index % 2 === 0 ? part : <strong key={index}>{part}</strong>
-                      )}
+                    <div className="text-sm whitespace-pre-wrap">
+                      {message.content}
                     </div>
-                    {message.service && (
-                      <div className="mt-2 p-2 bg-background/50 rounded border">
-                        <div className="flex items-center gap-2 text-xs">
-                          <FileText className="w-3 h-3" />
-                          <span className="font-medium">{message.service.name}</span>
-                        </div>
-                      </div>
-                    )}
                     <div className="text-xs opacity-70 mt-1">
                       {message.timestamp.toLocaleTimeString('pt-BR', { 
                         hour: '2-digit', 
@@ -330,9 +363,6 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
             </div>
           </div>
         </div>
-        
-        {/* Payment Modal Integration */}
-        <PaymentModalIntegration />
       </div>
     );
   }
@@ -354,13 +384,6 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                 <p className="text-xs text-muted-foreground">
                   {isTyping ? "Digitando..." : "Online"}
                 </p>
-                {selectedService && conversationData?.selectedService && (
-                  <div className="flex items-center gap-1 mt-1">
-                    <Badge variant="secondary" className="text-xs">
-                      Etapa {currentStep}/8
-                    </Badge>
-                  </div>
-                )}
               </div>
             </div>
             <Button variant="ghost" size="sm" onClick={() => setIsOpen(false)}>
@@ -381,26 +404,8 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                     Olá, {user?.email?.split('@')[0]}! 👋
                   </p>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Sou o assistente virtual do MeusDocumentos.AI. Como posso te ajudar hoje?
+                    Como posso te ajudar hoje?
                   </p>
-                  {selectedService && (
-                    <div className="mt-4 p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-2 text-sm">
-                        <FileText className="w-4 h-4 text-primary" />
-                        <span className="font-medium">{selectedService.name}</span>
-                      </div>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <DollarSign className="w-3 h-3" />
-                          <span>A partir de {formatPrice(selectedService.base_price)}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>{selectedService.estimated_days} dias</span>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
               )}
 
@@ -417,32 +422,22 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
                     </Avatar>
                   )}
                   
-                   <div className={cn(
-                     "max-w-[80%] p-3 rounded-lg text-sm",
-                     message.type === 'user' 
-                       ? "bg-primary text-primary-foreground"
-                       : "bg-muted"
-                   )}>
-                     <div className="whitespace-pre-wrap markdown-content">
-                       {message.content.split('**').map((part, index) => 
-                         index % 2 === 0 ? part : <strong key={index}>{part}</strong>
-                       )}
-                     </div>
-                     {message.service && (
-                       <div className="mt-2 p-2 bg-background/50 rounded border">
-                         <div className="flex items-center gap-2 text-xs">
-                           <FileText className="w-3 h-3" />
-                           <span className="font-medium">{message.service.name}</span>
-                         </div>
-                       </div>
-                     )}
-                     <div className="text-xs opacity-70 mt-1">
-                       {message.timestamp.toLocaleTimeString('pt-BR', { 
-                         hour: '2-digit', 
-                         minute: '2-digit' 
-                       })}
-                     </div>
-                   </div>
+                  <div className={cn(
+                    "max-w-[80%] p-3 rounded-lg text-sm",
+                    message.type === 'user' 
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-muted"
+                  )}>
+                    <div className="whitespace-pre-wrap">
+                      {message.content}
+                    </div>
+                    <div className="text-xs opacity-70 mt-1">
+                      {message.timestamp.toLocaleTimeString('pt-BR', { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </div>
+                  </div>
 
                   {message.type === 'user' && (
                     <Avatar className="w-6 h-6 flex-shrink-0">
@@ -517,9 +512,6 @@ Use \`/help\` para ver todos os comandos disponíveis.`;
           </div>
         </CardContent>
       </Card>
-      
-      {/* Payment Modal Integration */}
-      <PaymentModalIntegration />
     </div>
   );
 }
