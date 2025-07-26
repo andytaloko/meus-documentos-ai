@@ -80,6 +80,26 @@ const ChatBot = ({ isOpen, onClose, selectedService }: ChatBotProps) => {
 
       if (error) throw error;
       setUserProfile(profile);
+
+      // Fetch conversation history for logged-in users
+      if (user?.id) {
+        const { data: conversations } = await supabase
+          .from('conversations')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('status', 'active')
+          .order('updated_at', { ascending: false })
+          .limit(1);
+
+        if (conversations && conversations.length > 0) {
+          const lastConversation = conversations[0];
+          const storedMessages = Array.isArray(lastConversation.messages) ? lastConversation.messages : 
+                                   typeof lastConversation.messages === 'string' ? JSON.parse(lastConversation.messages) : [];
+          setMessages(storedMessages);
+          setCurrentStep(lastConversation.current_step || 1);
+          setConversationData(lastConversation.collected_data || {});
+        }
+      }
     } catch (error) {
       console.error('Error fetching user profile:', error);
     }
