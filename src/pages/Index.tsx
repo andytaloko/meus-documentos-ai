@@ -3,9 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, MessageCircle, Clock, DollarSign, User, LogIn } from "lucide-react";
+import { FileText, MessageCircle, Clock, DollarSign, User, LogIn, Bell } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { useNotifications } from "@/hooks/useNotifications";
+import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import ChatBot from "@/components/ChatBot";
 
 interface Service {
@@ -22,6 +25,8 @@ const Index = () => {
   const [showChat, setShowChat] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
   const { user } = useAuth();
+  const { isMobile, getGridColumns } = useResponsiveLayout();
+  const { success, info } = useNotifications();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -29,16 +34,19 @@ const Index = () => {
   }, []);
 
   const fetchServices = async () => {
-    const { data, error } = await supabase
-      .from('services')
-      .select('*')
-      .eq('active', true)
-      .order('category, name');
+    try {
+      const { data, error } = await supabase
+        .from('services')
+        .select('*')
+        .eq('active', true)
+        .order('category, name');
 
-    if (error) {
-      console.error('Erro ao buscar serviços:', error);
-    } else {
+      if (error) throw error;
+      
       setServices(data || []);
+      success('Serviços carregados', 'Lista de serviços atualizada');
+    } catch (error) {
+      console.error('Erro ao buscar serviços:', error);
     }
   };
 
@@ -53,6 +61,7 @@ const Index = () => {
   const handleServiceSelect = (service: Service) => {
     setSelectedService(service);
     setShowChat(true);
+    info('Serviço selecionado', `Iniciando conversa sobre ${service.name}`);
   };
 
   const formatPrice = (price: number) => {
@@ -63,36 +72,43 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20">
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      <header className="bg-background/95 backdrop-blur-sm shadow-sm border-b sticky top-0 z-30">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <div className="bg-primary rounded-lg p-2">
+              <div className="bg-primary rounded-lg p-2 hover-scale">
                 <FileText className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="text-2xl font-bold text-gray-900">MeusDocumentos.AI</h1>
-                <p className="text-sm text-gray-600">Documentos oficiais de forma simples e rápida</p>
+                <h1 className="text-2xl font-bold">MeusDocumentos.AI</h1>
+                <p className="text-sm text-muted-foreground">Documentos oficiais de forma simples e rápida</p>
               </div>
             </div>
             <div className="flex items-center gap-2">
+              {user && (
+                <div className="hidden sm:block">
+                  <NotificationCenter />
+                </div>
+              )}
+              
               {user ? (
                 <>
                   <Button 
                     variant="outline"
                     onClick={() => navigate('/dashboard')}
+                    className={`${isMobile ? 'w-full' : ''} hover-scale`}
                   >
                     <User className="h-4 w-4 mr-2" />
-                    Meus Pedidos
+                    {isMobile ? 'Dashboard' : 'Meus Pedidos'}
                   </Button>
                   <Button 
                     onClick={() => setShowChat(true)}
-                    className="bg-primary hover:bg-primary/90"
+                    className={`hover-scale ${isMobile ? 'w-full' : ''}`}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
-                    Novo Pedido
+                    {isMobile ? 'Chat' : 'Novo Pedido'}
                   </Button>
                 </>
               ) : (
@@ -100,16 +116,17 @@ const Index = () => {
                   <Button 
                     variant="outline"
                     onClick={() => navigate('/auth/login')}
+                    className={`${isMobile ? 'w-full' : ''} hover-scale`}
                   >
                     <LogIn className="h-4 w-4 mr-2" />
                     Entrar
                   </Button>
                   <Button 
                     onClick={() => setShowChat(true)}
-                    className="bg-primary hover:bg-primary/90"
+                    className={`hover-scale ${isMobile ? 'w-full' : ''}`}
                   >
                     <MessageCircle className="h-4 w-4 mr-2" />
-                    Fale com nosso Assistente
+                    {isMobile ? 'Assistente' : 'Fale com nosso Assistente'}
                   </Button>
                 </>
               )}
@@ -119,33 +136,33 @@ const Index = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="py-12 px-4 sm:px-6 lg:px-8">
+      <section className="py-12 px-4 sm:px-6 lg:px-8 animate-fade-in">
         <div className="max-w-4xl mx-auto text-center">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4">
+          <h2 className="text-4xl font-bold mb-4">
             Solicite seus documentos oficiais com inteligência artificial
           </h2>
-          <p className="text-xl text-gray-600 mb-8">
+          <p className="text-xl text-muted-foreground mb-8">
             Nosso assistente virtual analisa suas necessidades e te guia através do processo completo
           </p>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
-            <div className="flex flex-col items-center p-4">
+          <div className={`grid grid-cols-1 ${isMobile ? 'gap-4' : 'sm:grid-cols-3 gap-6'} mb-8`}>
+            <div className="flex flex-col items-center p-4 hover-scale">
               <MessageCircle className="h-12 w-12 text-primary mb-2" />
-              <h3 className="font-semibold text-gray-900">Conversa Inteligente</h3>
-              <p className="text-sm text-gray-600 text-center">
+              <h3 className="font-semibold">Conversa Inteligente</h3>
+              <p className="text-sm text-muted-foreground text-center">
                 Nossa IA entende suas necessidades e coleta as informações necessárias
               </p>
             </div>
-            <div className="flex flex-col items-center p-4">
+            <div className="flex flex-col items-center p-4 hover-scale">
               <Clock className="h-12 w-12 text-primary mb-2" />
-              <h3 className="font-semibold text-gray-900">Processo Rápido</h3>
-              <p className="text-sm text-gray-600 text-center">
+              <h3 className="font-semibold">Processo Rápido</h3>
+              <p className="text-sm text-muted-foreground text-center">
                 Prazos transparentes e acompanhamento em tempo real
               </p>
             </div>
-            <div className="flex flex-col items-center p-4">
+            <div className="flex flex-col items-center p-4 hover-scale">
               <DollarSign className="h-12 w-12 text-primary mb-2" />
-              <h3 className="font-semibold text-gray-900">Preços Claros</h3>
-              <p className="text-sm text-gray-600 text-center">
+              <h3 className="font-semibold">Preços Claros</h3>
+              <p className="text-sm text-muted-foreground text-center">
                 Sem taxas ocultas, valores transparentes desde o início
               </p>
             </div>

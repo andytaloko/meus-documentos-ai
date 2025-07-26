@@ -1,7 +1,11 @@
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ProgressIndicator } from "./ProgressIndicator";
+import { QuickActions } from "@/components/common/QuickActions";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { ProgressTracker } from "@/components/common/ProgressTracker";
+import { useOrderStatus } from "@/hooks/useOrderStatus";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { Clock, CreditCard, MessageSquare, Eye, FileText } from "lucide-react";
 import { useChatBot } from "@/contexts/ChatBotContext";
 
@@ -27,24 +31,11 @@ interface OrderCardProps {
   onViewDetails?: (order: Order) => void;
 }
 
-const statusConfig = {
-  pending: { label: 'Pendente', variant: 'secondary' as const, color: 'bg-orange-500', step: 1 },
-  processing: { label: 'Em Processamento', variant: 'default' as const, color: 'bg-blue-500', step: 2 },
-  completed: { label: 'Concluído', variant: 'default' as const, color: 'bg-green-500', step: 4 },
-  cancelled: { label: 'Cancelado', variant: 'destructive' as const, color: 'bg-red-500', step: 0 },
-};
-
-const paymentStatusConfig = {
-  pending: { label: 'Aguardando', variant: 'secondary' as const, color: 'text-orange-600' },
-  paid: { label: 'Pago', variant: 'default' as const, color: 'text-green-600' },
-  cancelled: { label: 'Cancelado', variant: 'destructive' as const, color: 'text-red-600' },
-};
 
 export function OrderCard({ order, onViewDetails }: OrderCardProps) {
   const { setIsOpen, addMessage } = useChatBot();
-  
-  const statusInfo = statusConfig[order.status as keyof typeof statusConfig];
-  const paymentInfo = paymentStatusConfig[order.payment_status as keyof typeof paymentStatusConfig];
+  const orderStatus = useOrderStatus(order.status as any);
+  const { isMobile, getCardSize } = useResponsiveLayout();
 
   const handleChatAboutOrder = () => {
     addMessage({
@@ -58,8 +49,8 @@ export function OrderCard({ order, onViewDetails }: OrderCardProps) {
         content: `📋 **Informações do Pedido #${order.id.slice(-8).toUpperCase()}**
 
 **Serviço:** ${order.services?.name || 'Serviço'}
-**Status:** ${statusInfo.label}
-**Pagamento:** ${paymentInfo.label}
+**Status:** ${orderStatus.label}
+**Pagamento:** ${order.payment_status === 'paid' ? 'Pago' : 'Pendente'}
 **Valor:** R$ ${(order.total_amount / 100).toFixed(2)}
 **Data do pedido:** ${new Date(order.created_at).toLocaleDateString('pt-BR')}
 
@@ -77,8 +68,35 @@ Como posso te ajudar com este pedido? 🤔`
     }).format(amount / 100);
   };
 
+  const cardActions = [
+    {
+      id: 'view',
+      label: 'Detalhes',
+      icon: <Eye className="w-4 h-4" />,
+      onClick: () => onViewDetails?.(order),
+      variant: 'outline' as const,
+      tooltip: 'Ver detalhes completos do pedido'
+    },
+    {
+      id: 'chat',
+      label: isMobile ? '' : 'Assistente',
+      icon: <MessageSquare className="w-4 h-4" />,
+      onClick: handleChatAboutOrder,
+      variant: 'outline' as const,
+      tooltip: 'Conversar sobre este pedido'
+    },
+    ...(orderStatus.isCompleted ? [{
+      id: 'download',
+      label: '',
+      icon: <FileText className="w-4 h-4" />,
+      onClick: () => console.log('Download document'),
+      variant: 'outline' as const,
+      tooltip: 'Baixar documento finalizado'
+    }] : [])
+  ];
+
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+    <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-fade-in">
       <CardContent className="p-6">
         {/* Header */}
         <div className="flex items-start justify-between mb-4">
@@ -90,21 +108,20 @@ Como posso te ajudar com este pedido? 🤔`
               {order.services?.category}
             </p>
           </div>
-          <Badge 
-            variant={statusInfo.variant}
-            className="flex items-center gap-1"
-          >
-            <div className={`w-2 h-2 rounded-full ${statusInfo.color}`} />
-            {statusInfo.label}
-          </Badge>
+          <StatusBadge 
+            status={order.status as any}
+            showIcon={true}
+            className="animate-scale-in"
+          />
         </div>
 
-        {/* Progress */}
+        {/* Progress Tracker */}
         <div className="mb-4">
-          <ProgressIndicator 
-            currentStep={statusInfo.step} 
-            totalSteps={4}
-            status={order.status}
+          <ProgressTracker 
+            currentStatus={order.status as any}
+            showTimeline={!isMobile}
+            showDescriptions={!isMobile}
+            size={isMobile ? 'sm' : 'md'}
           />
         </div>
 
@@ -115,8 +132,10 @@ Como posso te ajudar com este pedido? 🤔`
               <CreditCard className="w-3 h-3" />
               Pagamento
             </div>
-            <p className={`text-sm font-medium ${paymentInfo.color}`}>
-              {paymentInfo.label}
+            <p className={`text-sm font-medium ${
+              order.payment_status === 'paid' ? 'text-success' : 'text-warning'
+            }`}>
+              {order.payment_status === 'paid' ? 'Pago' : 'Pendente'}
             </p>
           </div>
           <div>
@@ -149,32 +168,13 @@ Como posso te ajudar com este pedido? 🤔`
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex-1"
-            onClick={() => onViewDetails?.(order)}
-          >
-            <Eye className="w-4 h-4 mr-1" />
-            Detalhes
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="flex-1"
-            onClick={handleChatAboutOrder}
-          >
-            <MessageSquare className="w-4 h-4 mr-1" />
-            Assistente
-          </Button>
-          {order.status === 'completed' && (
-            <Button variant="outline" size="sm">
-              <FileText className="w-4 h-4" />
-            </Button>
-          )}
-        </div>
+        {/* Quick Actions */}
+        <QuickActions 
+          actions={cardActions}
+          size="sm"
+          maxActions={isMobile ? 2 : 3}
+          compact={isMobile}
+        />
 
         {/* Order ID */}
         <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">

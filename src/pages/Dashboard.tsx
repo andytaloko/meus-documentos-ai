@@ -6,6 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { useAuth } from '@/hooks/useAuth';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { useNotifications } from '@/hooks/useNotifications';
 import { supabase } from '@/integrations/supabase/client';
 import { FileText, Clock, CheckCircle, User, LogOut, Plus, Search, Filter } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
@@ -14,6 +16,7 @@ import { OrderDetailsModal } from '@/components/dashboard/OrderDetailsModal';
 import { LoadingSkeleton } from '@/components/dashboard/LoadingSkeleton';
 import { FloatingChatButton } from '@/components/chat/FloatingChatButton';
 import { ChatPanel } from '@/components/chat/ChatPanel';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 
 interface Order {
   id: string;
@@ -48,6 +51,8 @@ export default function Dashboard() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [showOrderDetails, setShowOrderDetails] = useState(false);
   const { user, signOut } = useAuth();
+  const { isMobile, getGridColumns } = useResponsiveLayout();
+  const { success, error, info } = useNotifications();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -111,13 +116,12 @@ export default function Dashboard() {
       if (profileError) throw profileError;
       setProfile(profileData);
 
+      // Success notification
+      success('Dados carregados com sucesso', 'Dashboard atualizada');
+
     } catch (error) {
       console.error('Error fetching user data:', error);
-      toast({
-        title: 'Erro',
-        description: 'Erro ao carregar dados do usuário.',
-        variant: 'destructive',
-      });
+      error('Erro ao carregar dados', 'Erro ao carregar dados do usuário');
     } finally {
       setLoading(false);
     }
@@ -140,10 +144,7 @@ export default function Dashboard() {
               order.id === payload.new.id ? { ...order, ...payload.new } : order
             ));
             
-            toast({
-              title: 'Status Atualizado',
-              description: 'O status do seu pedido foi atualizado.',
-            });
+            info('Status Atualizado', 'O status do seu pedido foi atualizado');
           }
         }
       )
@@ -191,19 +192,29 @@ export default function Dashboard() {
                   {profile?.display_name?.charAt(0) || user?.email?.charAt(0) || 'U'}
                 </AvatarFallback>
               </Avatar>
-              <div>
+              <div className="flex-1">
                 <h1 className="text-2xl font-bold">
                   Olá, {profile?.display_name || user?.email?.split('@')[0]}!
                 </h1>
                 <p className="text-muted-foreground">Acompanhe seus documentos e pedidos</p>
               </div>
+              
+              {/* Notification Center */}
+              <div className="hidden sm:block">
+                <NotificationCenter />
+              </div>
             </div>
             
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+              {/* Mobile Notification Center */}
+              <div className="sm:hidden">
+                <NotificationCenter />
+              </div>
+              
               <Button 
                 variant="outline" 
                 onClick={() => navigate('/')}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto hover-scale"
               >
                 <Plus className="h-4 w-4 mr-2" />
                 Novo Pedido
@@ -211,7 +222,7 @@ export default function Dashboard() {
               <Button 
                 variant="ghost" 
                 onClick={() => navigate('/profile')}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto hover-scale"
               >
                 <User className="h-4 w-4 mr-2" />
                 Perfil
@@ -219,7 +230,7 @@ export default function Dashboard() {
               <Button 
                 variant="ghost" 
                 onClick={handleSignOut}
-                className="w-full sm:w-auto"
+                className="w-full sm:w-auto hover-scale"
               >
                 <LogOut className="h-4 w-4 mr-2" />
                 Sair

@@ -6,9 +6,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Send, Bot, User, X, Loader2 } from "lucide-react";
+import { Send, Bot, User, X, Loader2, Command } from "lucide-react";
 import { useChatBot } from "@/contexts/ChatBotContext";
 import { useAuth } from "@/hooks/useAuth";
+import { usePersistentChat } from "@/hooks/usePersistentChat";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { cn } from "@/lib/utils";
 
 export function ChatPanel() {
@@ -21,8 +23,15 @@ export function ChatPanel() {
     markAsRead 
   } = useChatBot();
   
+  const { 
+    sendMessage,
+    getUnreadCount 
+  } = usePersistentChat();
+  
+  const { isMobile } = useResponsiveLayout();
   const [inputMessage, setInputMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [showCommands, setShowCommands] = useState(false);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
 
@@ -43,24 +52,27 @@ export function ChatPanel() {
 
     const userMessage = inputMessage.trim();
     setInputMessage("");
+    setShowCommands(false);
     
-    // Add user message
-    addMessage({
-      type: 'user',
-      content: userMessage
-    });
+    // Check if it's a command
+    if (userMessage.startsWith('/')) {
+      const response = handleCommand(userMessage);
+      if (response) {
+        addMessage({
+          type: 'bot',
+          content: response
+        });
+      }
+      return;
+    }
 
-    // Simulate bot response
+    // Regular message
     setIsTyping(true);
-    
-    setTimeout(() => {
-      const response = generateBotResponse(userMessage);
-      addMessage({
-        type: 'bot',
-        content: response
-      });
+    try {
+      await sendMessage(userMessage);
+    } finally {
       setIsTyping(false);
-    }, 1000 + Math.random() * 1000);
+    }
   };
 
   const generateBotResponse = (userInput: string): string => {
@@ -139,12 +151,75 @@ Me diga como posso te ajudar melhor! 😊`;
       e.preventDefault();
       handleSendMessage();
     }
+    if (e.key === '/' && inputMessage === '') {
+      setShowCommands(true);
+    }
+    if (e.key === 'Escape') {
+      setShowCommands(false);
+    }
+  };
+
+  const availableCommands = [
+    { command: '/help', description: 'Ver comandos disponíveis' },
+    { command: '/status', description: 'Ver status dos pedidos' },
+    { command: '/clear', description: 'Limpar conversa' },
+    { command: '/profile', description: 'Ver informações do perfil' }
+  ];
+
+  const handleCommand = (command: string): string => {
+    switch (command.toLowerCase()) {
+      case '/help':
+        return `🤖 **Comandos Disponíveis**
+
+• \`/help\` - Ver esta lista de comandos
+• \`/status\` - Ver status dos seus pedidos  
+• \`/clear\` - Limpar conversa atual
+• \`/profile\` - Ver informações do perfil
+
+Digite qualquer um dos comandos acima ou converse normalmente comigo! 😊`;
+
+      case '/status':
+        return `📊 **Status dos Pedidos**
+
+Para ver informações detalhadas dos seus pedidos:
+• Acesse o Dashboard principal
+• Consulte a seção "Meus Pedidos"
+• Use filtros para encontrar pedidos específicos
+
+Como posso te ajudar com algum pedido específico? 🤔`;
+
+      case '/clear':
+        // Clear messages after a short delay
+        setTimeout(() => {
+          // This would clear messages if we had that function
+        }, 1000);
+        return `🧹 **Conversa Limpa**
+
+Conversa atual foi limpa! Como posso te ajudar agora? 😊`;
+
+      case '/profile':
+        return `👤 **Informações do Perfil**
+
+Para acessar e editar seu perfil:
+• Clique no botão "Perfil" no menu superior
+• Atualize suas informações pessoais
+• Salve as alterações
+
+Precisa de ajuda com alguma informação específica do perfil? 🔧`;
+
+      default:
+        return `❓ **Comando não reconhecido**
+
+Use \`/help\` para ver todos os comandos disponíveis.`;
+    }
+  };
+
+  const handleCommandSelect = (command: string) => {
+    setInputMessage(command);
+    setShowCommands(false);
   };
 
   if (!isOpen) return null;
-
-  // Mobile: Full screen modal
-  const isMobile = window.innerWidth < 768;
 
   if (isMobile) {
     return (
@@ -246,12 +321,34 @@ Me diga como posso te ajudar melhor! 😊`;
           </ScrollArea>
 
           {/* Input */}
-          <div className="p-4 border-t">
+          <div className="p-4 border-t relative">
+            {/* Command suggestions */}
+            {showCommands && (
+              <div className="absolute bottom-full left-4 right-4 mb-2 bg-background border rounded-lg shadow-lg z-50">
+                <div className="p-2 border-b flex items-center gap-2">
+                  <Command className="w-4 h-4 text-muted-foreground" />
+                  <span className="text-sm font-medium">Comandos disponíveis</span>
+                </div>
+                <div className="max-h-32 overflow-y-auto">
+                  {availableCommands.map((cmd) => (
+                    <button
+                      key={cmd.command}
+                      onClick={() => handleCommandSelect(cmd.command)}
+                      className="w-full text-left p-2 hover:bg-muted/50 text-sm"
+                    >
+                      <div className="font-mono text-primary">{cmd.command}</div>
+                      <div className="text-muted-foreground text-xs">{cmd.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="flex gap-2">
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Digite sua mensagem..."
+                placeholder="Digite sua mensagem ou / para comandos..."
                 onKeyPress={handleKeyPress}
                 disabled={isTyping}
                 className="flex-1"
@@ -372,12 +469,34 @@ Me diga como posso te ajudar melhor! 😊`;
             </div>
           </ScrollArea>
 
-          <div className="p-4 border-t">
+          <div className="p-4 border-t relative">
+            {/* Command suggestions */}
+            {showCommands && (
+              <div className="absolute bottom-full left-4 right-4 mb-2 bg-background border rounded-lg shadow-lg z-50">
+                <div className="p-2 border-b flex items-center gap-2">
+                  <Command className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-xs font-medium">Comandos</span>
+                </div>
+                <div className="max-h-24 overflow-y-auto">
+                  {availableCommands.map((cmd) => (
+                    <button
+                      key={cmd.command}
+                      onClick={() => handleCommandSelect(cmd.command)}
+                      className="w-full text-left p-1.5 hover:bg-muted/50 text-xs"
+                    >
+                      <div className="font-mono text-primary">{cmd.command}</div>
+                      <div className="text-muted-foreground text-[10px]">{cmd.description}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
             <div className="flex gap-2">
               <Input
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
-                placeholder="Digite sua mensagem..."
+                placeholder="Digite ou / para comandos..."
                 onKeyPress={handleKeyPress}
                 disabled={isTyping}
                 className="flex-1 text-sm"
