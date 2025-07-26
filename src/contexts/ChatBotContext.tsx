@@ -14,10 +14,12 @@ interface ChatBotContextType {
   isOpen: boolean;
   messages: Message[];
   unreadCount: number;
+  selectedService?: any;
   setIsOpen: (open: boolean) => void;
   addMessage: (message: Omit<Message, 'id' | 'timestamp'>) => void;
   markAsRead: () => void;
   clearMessages: () => void;
+  initializeWithService: (service: any) => void;
   isLoading: boolean;
 }
 
@@ -28,6 +30,7 @@ export function ChatBotProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
+  const [selectedService, setSelectedService] = useState<any>(null);
   const { user } = useAuth();
 
   // Load conversation history when user logs in
@@ -122,14 +125,41 @@ export function ChatBotProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  const initializeWithService = (service: any) => {
+    setSelectedService(service);
+    clearMessages();
+    
+    // Add initial service message
+    const initialMessage: Message = {
+      id: `msg_${Date.now()}_${Math.random()}`,
+      type: 'bot',
+      content: `Olá! 👋 Vejo que você tem interesse no serviço **${service.name}**.
+
+Como posso te ajudar com este serviço? Posso:
+• Explicar o processo
+• Listar os documentos necessários  
+• Calcular o valor total
+• Iniciar seu pedido
+
+O que você gostaria de saber? 😊`,
+      timestamp: new Date(),
+      service
+    };
+    
+    setMessages([initialMessage]);
+    setIsOpen(true);
+  };
+
   const value: ChatBotContextType = {
     isOpen,
     messages,
     unreadCount,
+    selectedService,
     setIsOpen,
     addMessage,
     markAsRead,
     clearMessages,
+    initializeWithService,
     isLoading
   };
 

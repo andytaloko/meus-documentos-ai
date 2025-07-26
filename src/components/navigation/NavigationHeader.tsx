@@ -45,7 +45,7 @@ export function NavigationHeader({ onServiceSelect }: NavigationHeaderProps) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const { user } = useAuth();
   const { isMobile } = useResponsiveLayout();
-  const { setIsOpen: setChatOpen } = useChatBot();
+  const { setIsOpen: setChatOpen, initializeWithService } = useChatBot();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -60,7 +60,7 @@ export function NavigationHeader({ onServiceSelect }: NavigationHeaderProps) {
     if (onServiceSelect) {
       onServiceSelect(service);
     }
-    setChatOpen(true);
+    initializeWithService(service);
     setIsMobileMenuOpen(false);
   };
 

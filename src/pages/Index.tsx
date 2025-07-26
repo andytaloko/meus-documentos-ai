@@ -20,20 +20,12 @@ interface Service {
 
 const Index = () => {
   const [selectedService, setSelectedService] = useState<Service | null>(null);
-  const { setIsOpen: setChatOpen, addMessage } = useChatBot();
+  const { setIsOpen: setChatOpen, initializeWithService } = useChatBot();
   const { info } = useNotifications();
 
   const handleServiceSelect = (service: Service) => {
     setSelectedService(service);
-    
-    // Add service context to chat
-    addMessage({
-      type: 'bot',
-      content: `Olá! 👋 Vejo que você está interessado em solicitar: **${service.name}**\n\nEste documento tem um custo a partir de **R$ ${formatPrice(service.base_price)}** e prazo estimado de **${service.estimated_days} dias úteis**.\n\nPara começar, preciso de algumas informações básicas. Qual é o seu nome completo?`,
-      service
-    });
-    
-    setChatOpen(true);
+    initializeWithService(service);
     info('Serviço selecionado', `Iniciando conversa sobre ${service.name}`);
   };
 

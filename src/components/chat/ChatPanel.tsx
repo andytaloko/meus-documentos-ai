@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Send, Bot, User, X, Loader2, Command } from "lucide-react";
 import { useChatBot } from "@/contexts/ChatBotContext";
 import { useAuth } from "@/hooks/useAuth";
-import { usePersistentChat } from "@/hooks/usePersistentChat";
+
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { cn } from "@/lib/utils";
 
@@ -20,13 +20,10 @@ export function ChatPanel() {
     messages, 
     addMessage, 
     isLoading,
-    markAsRead 
+    markAsRead,
+    clearMessages
   } = useChatBot();
   
-  const { 
-    sendMessage,
-    getUnreadCount 
-  } = usePersistentChat();
   
   const { isMobile } = useResponsiveLayout();
   const [inputMessage, setInputMessage] = useState("");
@@ -66,13 +63,22 @@ export function ChatPanel() {
       return;
     }
 
-    // Regular message
+    // Add user message to chat
+    addMessage({
+      type: 'user',
+      content: userMessage
+    });
+
+    // Generate bot response
     setIsTyping(true);
-    try {
-      await sendMessage(userMessage);
-    } finally {
+    setTimeout(() => {
+      const botResponse = generateBotResponse(userMessage);
+      addMessage({
+        type: 'bot',
+        content: botResponse
+      });
       setIsTyping(false);
-    }
+    }, 1500);
   };
 
   const generateBotResponse = (userInput: string): string => {
@@ -189,10 +195,7 @@ Para ver informações detalhadas dos seus pedidos:
 Como posso te ajudar com algum pedido específico? 🤔`;
 
       case '/clear':
-        // Clear messages after a short delay
-        setTimeout(() => {
-          // This would clear messages if we had that function
-        }, 1000);
+        clearMessages();
         return `🧹 **Conversa Limpa**
 
 Conversa atual foi limpa! Como posso te ajudar agora? 😊`;
