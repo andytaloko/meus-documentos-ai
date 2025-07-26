@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
@@ -62,9 +63,10 @@ export function ChatBotProvider({ children }: { children: ReactNode }) {
             ? JSON.parse(lastConversation.messages) 
             : [];
         
+        // Ensure all timestamps are converted to Date objects
         setMessages(storedMessages.map((msg: any) => ({
           ...msg,
-          timestamp: new Date(msg.timestamp)
+          timestamp: typeof msg.timestamp === 'number' ? new Date(msg.timestamp) : new Date(msg.timestamp)
         })));
       }
     } catch (error) {
