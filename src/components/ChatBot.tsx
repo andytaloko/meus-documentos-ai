@@ -95,7 +95,16 @@ const ChatBot = ({ isOpen, onClose, selectedService }: ChatBotProps) => {
           const lastConversation = conversations[0];
           const storedMessages = Array.isArray(lastConversation.messages) ? lastConversation.messages : 
                                    typeof lastConversation.messages === 'string' ? JSON.parse(lastConversation.messages) : [];
-          setMessages(storedMessages);
+          
+          // Ensure all timestamps are converted to Date objects
+          const normalizedMessages = storedMessages.map((msg: any) => ({
+            ...msg,
+            timestamp: typeof msg.timestamp === 'number' ? new Date(msg.timestamp) : 
+                      typeof msg.timestamp === 'string' ? new Date(msg.timestamp) : 
+                      msg.timestamp instanceof Date ? msg.timestamp : new Date()
+          }));
+          
+          setMessages(normalizedMessages);
           setCurrentStep(lastConversation.current_step || 1);
           setConversationData(lastConversation.collected_data || {});
         }
@@ -581,7 +590,8 @@ Tempo restante estimado: ${conversationData.selectedService.estimated_days - 1} 
                       </Card>
                     )}
                     <div className="text-xs opacity-70 mt-1">
-                      {message.timestamp.toLocaleTimeString()}
+                      {/* Ensure timestamp is a Date object before calling toLocaleTimeString */}
+                      {(message.timestamp instanceof Date ? message.timestamp : new Date(message.timestamp)).toLocaleTimeString()}
                     </div>
                   </div>
                 </div>
