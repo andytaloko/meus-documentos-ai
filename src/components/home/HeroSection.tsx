@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { MessageCircle, Play, ArrowRight, Users, Clock, Star } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { LiveActivityIndicator } from "@/components/home/LiveActivityIndicator";
 
 interface HeroSectionProps {
   onStartChat: () => void;
@@ -138,14 +139,21 @@ const HeroSection = ({ onStartChat }: HeroSectionProps) => {
           </div>
 
           {/* Trust indicators */}
-          <div className="animate-fadeInUp" style={{ animationDelay: '0.8s' }}>
-            <p className="text-sm text-muted-foreground mb-4">
-              Confiado por milhares de brasileiros
-            </p>
-            <div className="flex justify-center items-center gap-8 opacity-60">
-              {[1, 2, 3, 4, 5].map((_, i) => (
-                <Star key={i} className="h-5 w-5 fill-primary text-primary" />
-              ))}
+          <div className="animate-fadeInUp space-y-4" style={{ animationDelay: '0.8s' }}>
+            <div className="flex items-center justify-center gap-2 text-muted-foreground">
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                ))}
+              </div>
+              <span className="text-sm">
+                Mais de <span className="font-semibold text-foreground">15.000 brasileiros</span> confiam em nós
+              </span>
+            </div>
+            
+            {/* Live activity indicator */}
+            <div className="flex justify-center">
+              <LiveActivityIndicator />
             </div>
           </div>
         </div>

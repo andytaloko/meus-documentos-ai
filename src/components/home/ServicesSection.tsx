@@ -2,10 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Clock, DollarSign, FileText, Filter, Grid, List } from "lucide-react";
+import { Clock, DollarSign, FileText, Filter, Grid, List, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SearchDialog } from "@/components/ui/search-dialog";
+import { ServicePreviewModal } from "@/components/home/ServicePreviewModal";
 
 interface Service {
   id: string;
@@ -27,6 +29,8 @@ const ServicesSection = ({ onServiceSelect }: ServicesSectionProps) => {
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [inView, setInView] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [previewService, setPreviewService] = useState<Service | null>(null);
   const sectionRef = useRef<HTMLElement>(null);
 
   const categoryColors = {
@@ -39,6 +43,18 @@ const ServicesSection = ({ onServiceSelect }: ServicesSectionProps) => {
 
   useEffect(() => {
     fetchServices();
+  }, []);
+
+  // Global search keyboard shortcut
+  useEffect(() => {
+    const down = (e: KeyboardEvent) => {
+      if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+    document.addEventListener("keydown", down);
+    return () => document.removeEventListener("keydown", down);
   }, []);
 
   useEffect(() => {
@@ -88,13 +104,21 @@ const ServicesSection = ({ onServiceSelect }: ServicesSectionProps) => {
     ? services 
     : services.filter(s => s.category === selectedCategory);
 
+  const handleServiceClick = (service: Service) => {
+    if (isMobile) {
+      setPreviewService(service);
+    } else {
+      onServiceSelect(service);
+    }
+  };
+
   const ServiceCard = ({ service, index }: { service: Service; index: number }) => (
     <Card 
       className={`group cursor-pointer h-full transition-all duration-500 hover:shadow-premium hover:scale-105 hover:-translate-y-2 bg-card/50 backdrop-blur-sm border-border/50 hover:border-primary/20 ${
         inView ? 'animate-fadeInUp' : 'opacity-0 translate-y-10'
       }`}
       style={{ animationDelay: `${index * 0.1}s` }}
-      onClick={() => onServiceSelect(service)}
+      onClick={() => handleServiceClick(service)}
     >
       {/* Category color accent */}
       <div className={`h-1 w-full bg-gradient-to-r ${categoryColors[service.category as keyof typeof categoryColors] || categoryColors.Outros} rounded-t-lg`} />
@@ -178,6 +202,23 @@ const ServicesSection = ({ onServiceSelect }: ServicesSectionProps) => {
           </p>
         </div>
 
+        {/* Search bar */}
+        <div className={`mb-8 transition-all duration-700 ${inView ? 'animate-fadeInUp' : 'opacity-0 translate-y-10'}`} style={{ animationDelay: '0.15s' }}>
+          <Button 
+            variant="outline" 
+            onClick={() => setIsSearchOpen(true)}
+            className="w-full max-w-md mx-auto flex items-center gap-2 justify-start text-muted-foreground hover:text-foreground"
+          >
+            <Search className="h-4 w-4" />
+            Buscar serviços...
+            <div className="ml-auto flex items-center gap-1">
+              <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium text-muted-foreground opacity-100">
+                <span className="text-xs">⌘</span>K
+              </kbd>
+            </div>
+          </Button>
+        </div>
+
         {/* Filters and view controls */}
         <div className={`flex flex-col sm:flex-row justify-between items-center gap-4 mb-12 transition-all duration-700 ${inView ? 'animate-fadeInUp' : 'opacity-0 translate-y-10'}`} style={{ animationDelay: '0.2s' }}>
           {/* Category filters */}
@@ -254,6 +295,22 @@ const ServicesSection = ({ onServiceSelect }: ServicesSectionProps) => {
             </p>
           </div>
         )}
+
+        {/* Search Dialog */}
+        <SearchDialog
+          isOpen={isSearchOpen}
+          onClose={() => setIsSearchOpen(false)}
+          services={services}
+          onServiceSelect={onServiceSelect}
+        />
+
+        {/* Service Preview Modal */}
+        <ServicePreviewModal
+          service={previewService}
+          isOpen={!!previewService}
+          onClose={() => setPreviewService(null)}
+          onSelect={onServiceSelect}
+        />
       </div>
     </section>
   );

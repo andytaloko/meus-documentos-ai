@@ -3,6 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Star, Quote, Shield, Award, Users, CheckCircle } from "lucide-react";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { useSwipeGestures } from "@/hooks/useSwipeGestures";
 
 interface Testimonial {
   name: string;
@@ -18,6 +19,11 @@ const TrustSection = () => {
   const [currentTestimonial, setCurrentTestimonial] = useState(0);
   const [inView, setInView] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
+
+  const swipeRef = useSwipeGestures<HTMLDivElement>({
+    onSwipeLeft: () => setCurrentTestimonial((prev) => (prev + 1) % testimonials.length),
+    onSwipeRight: () => setCurrentTestimonial((prev) => (prev - 1 + testimonials.length) % testimonials.length),
+  });
 
   const testimonials: Testimonial[] = [
     {
@@ -108,7 +114,7 @@ const TrustSection = () => {
         </div>
 
         {/* Testimonials carousel */}
-        <div className={`mb-16 transition-all duration-700 ${inView ? 'animate-fadeInUp' : 'opacity-0 translate-y-10'}`} style={{ animationDelay: '0.2s' }}>
+        <div ref={swipeRef} className={`mb-16 transition-all duration-700 ${inView ? 'animate-fadeInUp' : 'opacity-0 translate-y-10'}`} style={{ animationDelay: '0.2s' }}>
           <Card className="max-w-4xl mx-auto bg-card/50 backdrop-blur-sm border-border/50 hover:border-primary/20 transition-all duration-500">
             <CardContent className="p-8">
               <div className="relative">
