@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Send, Bot, User, X, FileText, Clock, DollarSign } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import PaymentModal from "./PaymentModal";
 
 interface Service {
@@ -50,19 +51,39 @@ const ChatBot = ({ isOpen, onClose, selectedService }: ChatBotProps) => {
   const [conversationData, setConversationData] = useState<any>({});
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const { user } = useAuth();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
+      if (user) {
+        fetchUserProfile();
+      }
       initializeConversation();
     }
-  }, [isOpen, selectedService]);
+  }, [isOpen, selectedService, user]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages]);
+
+  const fetchUserProfile = async () => {
+    try {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .maybeSingle();
+
+      if (error) throw error;
+      setUserProfile(profile);
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+    }
+  };
 
   const initializeConversation = () => {
     const welcomeMessages: Message[] = [];
@@ -77,11 +98,35 @@ const ChatBot = ({ isOpen, onClose, selectedService }: ChatBotProps) => {
       });
 
       setTimeout(() => {
-        addBotMessage(`Este documento tem um custo a partir de **R$ ${formatPrice(selectedService.base_price)}** e prazo estimado de **${selectedService.estimated_days} dias úteis**.
+        if (user && userProfile) {
+          addBotMessage(`Este documento tem um custo a partir de **R$ ${formatPrice(selectedService.base_price)}** e prazo estimado de **${selectedService.estimated_days} dias úteis**.
+
+Olá, ${userProfile.display_name || user.email?.split('@')[0]}! Como você já está logado, vou usar suas informações salvas.
+
+Confirma os dados abaixo?
+• **Nome:** ${userProfile.display_name}
+• **CPF:** ${userProfile.cpf ? `${userProfile.cpf.slice(0,3)}.${userProfile.cpf.slice(3,6)}.${userProfile.cpf.slice(6,9)}-${userProfile.cpf.slice(9)}` : 'Não informado'}
+• **Telefone:** ${userProfile.phone || 'Não informado'}
+• **Email:** ${user.email}
+
+Digite **CONFIRMAR** para usar estes dados ou **ALTERAR** para informar outros dados:`);
+          
+          setConversationData({ 
+            selectedService,
+            customerName: userProfile.display_name,
+            customerCPF: userProfile.cpf,
+            customerPhone: userProfile.phone,
+            customerEmail: user.email,
+            userAuthenticated: true
+          });
+          setCurrentStep(CONVERSATION_STEPS.FEE_CALCULATION);
+        } else {
+          addBotMessage(`Este documento tem um custo a partir de **R$ ${formatPrice(selectedService.base_price)}** e prazo estimado de **${selectedService.estimated_days} dias úteis**.
 
 Para começar, preciso de algumas informações básicas. Qual é o seu nome completo?`);
-        setCurrentStep(CONVERSATION_STEPS.REQUIREMENTS_GATHERING);
-        setConversationData({ selectedService });
+          setCurrentStep(CONVERSATION_STEPS.REQUIREMENTS_GATHERING);
+          setConversationData({ selectedService });
+        }
       }, 1000);
     } else {
       welcomeMessages.push({
@@ -178,6 +223,28 @@ Para solicitar este documento, digite: **${index + 1}**`, service);
 
   const handleRequirementsGathering = (userInput: string) => {
     const currentData = conversationData;
+
+    // Handle authenticated user data confirmation
+    if (currentData.userAuthenticated) {
+      const input = userInput.toUpperCase();
+      if (input === 'CONFIRMAR') {
+        addBotMessage(`Perfeito! Vou calcular o valor final do seu documento. Um momento...`);
+        setTimeout(() => {
+          handleFeeCalculation(currentData);
+        }, 2000);
+        setCurrentStep(CONVERSATION_STEPS.FEE_CALCULATION);
+        return;
+      } else if (input === 'ALTERAR') {
+        addBotMessage(`Sem problemas! Vamos atualizar seus dados.
+
+Qual é o seu nome completo?`);
+        setConversationData({ ...currentData, userAuthenticated: false, customerName: '', customerCPF: '', customerPhone: '', customerEmail: '' });
+        return;
+      } else {
+        addBotMessage("Por favor, digite **CONFIRMAR** para usar os dados salvos ou **ALTERAR** para informar outros dados.");
+        return;
+      }
+    }
 
     if (!currentData.customerName) {
       setConversationData({ ...currentData, customerName: userInput });
@@ -278,7 +345,8 @@ Para cancelar, digite **CANCELAR**.`);
             total_amount: conversationData.totalAmount,
             document_data: conversationData,
             status: 'pending',
-            payment_status: 'pending'
+            payment_status: 'pending',
+            user_id: user?.id || null
           }])
           .select()
           .single();
@@ -373,7 +441,8 @@ Tempo restante estimado: ${conversationData.selectedService.estimated_days - 1} 
           current_step: currentStep,
           service_type: conversationData.selectedService?.category,
           collected_data: conversationData,
-          status: 'completed'
+          status: 'completed',
+          user_id: user?.id || null
         }]);
     } catch (error) {
       console.error('Erro ao salvar conversa:', error);

@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FileText, MessageCircle, Clock, DollarSign } from "lucide-react";
+import { FileText, MessageCircle, Clock, DollarSign, User, LogIn } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import ChatBot from "@/components/ChatBot";
 
 interface Service {
@@ -19,6 +21,8 @@ const Index = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [showChat, setShowChat] = useState(false);
   const [selectedService, setSelectedService] = useState<Service | null>(null);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   useEffect(() => {
     fetchServices();
@@ -73,13 +77,43 @@ const Index = () => {
                 <p className="text-sm text-gray-600">Documentos oficiais de forma simples e rápida</p>
               </div>
             </div>
-            <Button 
-              onClick={() => setShowChat(true)}
-              className="bg-primary hover:bg-primary/90"
-            >
-              <MessageCircle className="h-4 w-4 mr-2" />
-              Fale com nosso Assistente
-            </Button>
+            <div className="flex items-center gap-2">
+              {user ? (
+                <>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate('/dashboard')}
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    Meus Pedidos
+                  </Button>
+                  <Button 
+                    onClick={() => setShowChat(true)}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Novo Pedido
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button 
+                    variant="outline"
+                    onClick={() => navigate('/auth')}
+                  >
+                    <LogIn className="h-4 w-4 mr-2" />
+                    Entrar
+                  </Button>
+                  <Button 
+                    onClick={() => setShowChat(true)}
+                    className="bg-primary hover:bg-primary/90"
+                  >
+                    <MessageCircle className="h-4 w-4 mr-2" />
+                    Fale com nosso Assistente
+                  </Button>
+                </>
+              )}
+            </div>
           </div>
         </div>
       </header>
