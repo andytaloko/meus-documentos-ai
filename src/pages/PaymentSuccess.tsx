@@ -2,8 +2,14 @@ import { useEffect, useState } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { CheckCircle, Clock, FileText } from "lucide-react";
+import { CheckCircle, Clock, FileText, Printer, MessageCircle, Home, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { useNotifications } from "@/hooks/useNotifications";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { ProgressTracker } from "@/components/common/ProgressTracker";
+import { QuickActions } from "@/components/common/QuickActions";
+import { ActionButton } from "@/components/common/ActionButton";
 
 interface OrderData {
   id: string;
@@ -21,6 +27,8 @@ const PaymentSuccess = () => {
   const orderId = searchParams.get("order_id");
   const [order, setOrder] = useState<OrderData | null>(null);
   const [loading, setLoading] = useState(true);
+  const { isMobile, shouldUseModal } = useResponsiveLayout();
+  const { success } = useNotifications();
 
   useEffect(() => {
     const verifyPayment = async () => {
@@ -38,6 +46,7 @@ const PaymentSuccess = () => {
           console.error('Error verifying payment:', error);
         } else {
           setOrder(data.order);
+          success('Pagamento confirmado!', 'Seu pedido está sendo processado');
         }
       } catch (error) {
         console.error('Error:', error);
@@ -60,14 +69,50 @@ const PaymentSuccess = () => {
     return new Date(dateString).toLocaleDateString('pt-BR');
   };
 
+  const orderSteps = [
+    { id: 'order', label: 'Pedido', completed: true },
+    { id: 'payment', label: 'Pagamento', completed: true },
+    { id: 'processing', label: 'Processamento', completed: order?.status === 'processing' || order?.status === 'completed' },
+    { id: 'delivery', label: 'Entrega', completed: order?.status === 'completed' }
+  ];
+
+  const quickActions = [
+    {
+      id: 'home',
+      icon: Home,
+      label: 'Início',
+      onClick: () => { window.location.href = '/'; },
+      variant: 'outline' as const
+    },
+    {
+      id: 'print',
+      icon: Printer,
+      label: 'Imprimir',
+      onClick: () => { window.print(); },
+      variant: 'default' as const
+    },
+    {
+      id: 'whatsapp',
+      icon: MessageCircle,
+      label: 'WhatsApp',
+      onClick: () => { window.open('https://wa.me/5511999999999', '_blank'); },
+      variant: 'outline' as const
+    }
+  ];
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
+        <Card className={`w-full max-w-md animate-pulse ${isMobile ? 'mx-2' : ''}`}>
           <CardContent className="p-6">
             <div className="flex items-center justify-center space-x-2">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
               <span>Verificando pagamento...</span>
+            </div>
+            <div className="mt-4">
+              <StatusBadge variant="secondary" className="w-full justify-center">
+                Processando confirmação...
+              </StatusBadge>
             </div>
           </CardContent>
         </Card>
@@ -77,16 +122,23 @@ const PaymentSuccess = () => {
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center">
-        <Card className="w-full max-w-md">
+      <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 flex items-center justify-center p-4">
+        <Card className={`w-full max-w-md animate-fade-in ${isMobile ? 'mx-2' : ''}`}>
           <CardContent className="p-6 text-center">
             <h2 className="text-xl font-semibold mb-4">Pedido não encontrado</h2>
             <p className="text-muted-foreground mb-4">
               Não foi possível encontrar os detalhes do seu pedido.
             </p>
-            <Link to="/">
-              <Button>Voltar ao início</Button>
-            </Link>
+            <StatusBadge variant="destructive" className="mb-4">
+              Erro na verificação
+            </StatusBadge>
+            <ActionButton
+              label="Voltar ao início"
+              icon={Home}
+              onClick={() => window.location.href = '/'}
+              variant="default"
+              className="w-full"
+            />
           </CardContent>
         </Card>
       </div>
@@ -95,15 +147,20 @@ const PaymentSuccess = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-4">
-      <div className="max-w-2xl mx-auto pt-8">
-        <Card className="mb-6">
+      <div className={`max-w-2xl mx-auto pt-8 ${isMobile ? 'px-2' : ''}`}>
+        <ProgressTracker steps={orderSteps} className="mb-6" />
+        
+        <Card className="mb-6 animate-scale-in hover-scale">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <CheckCircle className="h-16 w-16 text-green-500" />
+              <CheckCircle className="h-16 w-16 text-green-500 animate-scale-in" />
             </div>
             <CardTitle className="text-2xl text-green-600">
               Pagamento Confirmado!
             </CardTitle>
+            <StatusBadge variant="default" className="mt-2 mx-auto">
+              Pedido #{order.id.slice(0, 8)}
+            </StatusBadge>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center">
@@ -152,19 +209,11 @@ const PaymentSuccess = () => {
               </ul>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3 pt-4">
-              <Link to="/" className="flex-1">
-                <Button variant="outline" className="w-full">
-                  Fazer outro pedido
-                </Button>
-              </Link>
-              <Button 
-                className="flex-1"
-                onClick={() => window.print()}
-              >
-                Imprimir comprovante
-              </Button>
-            </div>
+            <QuickActions 
+              actions={quickActions}
+              variant={isMobile ? "mobile" : "grid"}
+              className="pt-4"
+            />
           </CardContent>
         </Card>
 

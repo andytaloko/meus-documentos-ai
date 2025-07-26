@@ -5,8 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Eye, EyeOff, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, CheckCircle, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { useNotifications } from '@/hooks/useNotifications';
+import { StatusBadge } from '@/components/common/StatusBadge';
 
 export default function Signup() {
   const [email, setEmail] = useState('');
@@ -19,6 +22,8 @@ export default function Signup() {
   
   const { signUp, user } = useAuth();
   const navigate = useNavigate();
+  const { isMobile, shouldUseModal } = useResponsiveLayout();
+  const { success: showSuccess, error: notifyError } = useNotifications();
 
   useEffect(() => {
     if (user) {
@@ -51,17 +56,17 @@ export default function Signup() {
     if (signUpError) {
       if (signUpError.message.includes('already registered')) {
         setError('Este email já está cadastrado. Tente fazer login.');
+        notifyError('Email já cadastrado', 'Este email já possui uma conta');
       } else if (signUpError.message.includes('weak password')) {
         setError('Senha muito fraca. Use pelo menos 6 caracteres.');
+        notifyError('Senha inválida', 'Use uma senha mais forte');
       } else {
         setError('Erro ao criar conta. Tente novamente.');
+        notifyError('Erro no cadastro', 'Ocorreu um problema. Tente novamente');
       }
     } else {
       setSuccess(true);
-      toast({
-        title: "Conta criada com sucesso!",
-        description: "Bem-vindo ao MeusDocumentos.AI",
-      });
+      showSuccess('Conta criada com sucesso!', 'Bem-vindo ao MeusDocumentos.AI');
       
       // Auto redirect after success
       setTimeout(() => {
@@ -75,7 +80,7 @@ export default function Signup() {
   if (success) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
+        <Card className={`w-full max-w-md animate-scale-in ${isMobile ? 'mx-2' : ''}`}>
           <CardContent className="pt-6">
             <div className="text-center space-y-4">
               <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
@@ -92,7 +97,7 @@ export default function Signup() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className={`w-full max-w-md animate-fade-in ${isMobile ? 'mx-2' : ''}`}>
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2 mb-4">
             <Button
@@ -183,11 +188,26 @@ export default function Signup() {
           <CardFooter className="flex flex-col space-y-4">
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full hover-scale" 
               disabled={loading}
             >
-              {loading ? 'Criando conta...' : 'Criar conta'}
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Criando conta...
+                </>
+              ) : (
+                'Criar conta'
+              )}
             </Button>
+            
+            {loading && (
+              <div className="flex items-center justify-center pt-2">
+                <StatusBadge variant="secondary" className="text-xs">
+                  Configurando sua conta...
+                </StatusBadge>
+              </div>
+            )}
             
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">

@@ -4,7 +4,9 @@ import { cn } from '@/lib/utils';
 import { useOrderStatus, OrderStatus } from '@/hooks/useOrderStatus';
 
 interface StatusBadgeProps {
-  status: OrderStatus;
+  status?: OrderStatus;
+  children?: ReactNode;
+  variant?: 'default' | 'secondary' | 'destructive' | 'outline';
   showIcon?: boolean;
   showProgress?: boolean;
   animated?: boolean;
@@ -14,63 +16,83 @@ interface StatusBadgeProps {
 
 export function StatusBadge({
   status,
+  children,
+  variant: propVariant,
   showIcon = true,
   showProgress = false,
   animated = true,
   size = 'md',
   className
 }: StatusBadgeProps) {
-  const {
-    label,
-    variant,
-    color,
-    icon: Icon,
-    progress,
-    isCompleted,
-    isCancelled
-  } = useOrderStatus(status);
-
   const sizeClasses = {
     sm: 'text-xs px-2 py-1',
     md: 'text-sm px-3 py-1',
     lg: 'text-base px-4 py-2'
   };
 
+  // If status is provided, use order status logic
+  if (status) {
+    const {
+      label,
+      variant,
+      color,
+      icon: Icon,
+      progress,
+      isCompleted,
+      isCancelled
+    } = useOrderStatus(status);
+
+    return (
+      <div className="relative inline-flex items-center">
+        <Badge
+          variant={propVariant || variant}
+          className={cn(
+            'transition-all duration-300 flex items-center gap-1.5',
+            sizeClasses[size],
+            animated && 'animate-fade-in',
+            isCompleted && 'bg-green-100 text-green-800 border-green-300',
+            isCancelled && 'bg-red-100 text-red-800 border-red-300',
+            className
+          )}
+        >
+          {showIcon && Icon && (
+            <Icon 
+              className={cn(
+                'w-3 h-3',
+                size === 'lg' && 'w-4 h-4',
+                animated && isCompleted && 'animate-pulse'
+              )} 
+            />
+          )}
+          <span className="font-medium">{label}</span>
+          {showProgress && (
+            <span className="text-xs opacity-75 ml-1">
+              ({progress}%)
+            </span>
+          )}
+        </Badge>
+        
+        {/* Pulse effect for active statuses */}
+        {animated && !isCompleted && !isCancelled && (
+          <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-primary" />
+        )}
+      </div>
+    );
+  }
+
+  // Simple badge with children content
   return (
-    <div className="relative inline-flex items-center">
-      <Badge
-        variant={variant}
-        className={cn(
-          'transition-all duration-300 flex items-center gap-1.5',
-          sizeClasses[size],
-          animated && 'animate-fade-in',
-          isCompleted && 'bg-green-100 text-green-800 border-green-300',
-          isCancelled && 'bg-red-100 text-red-800 border-red-300',
-          className
-        )}
-      >
-        {showIcon && Icon && (
-          <Icon 
-            className={cn(
-              'w-3 h-3',
-              size === 'lg' && 'w-4 h-4',
-              animated && isCompleted && 'animate-pulse'
-            )} 
-          />
-        )}
-        <span className="font-medium">{label}</span>
-        {showProgress && (
-          <span className="text-xs opacity-75 ml-1">
-            ({progress}%)
-          </span>
-        )}
-      </Badge>
-      
-      {/* Pulse effect for active statuses */}
-      {animated && !isCompleted && !isCancelled && (
-        <div className="absolute inset-0 rounded-full animate-ping opacity-20 bg-primary" />
+    <Badge
+      variant={propVariant || 'default'}
+      className={cn(
+        'transition-all duration-300',
+        sizeClasses[size],
+        animated && 'animate-fade-in',
+        className
       )}
-    </div>
+    >
+      {children}
+    </Badge>
   );
 }
 

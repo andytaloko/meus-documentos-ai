@@ -3,16 +3,17 @@ import { cn } from '@/lib/utils';
 import { CheckCircle, Circle, Clock, AlertCircle } from 'lucide-react';
 import { useOrderStatus, OrderStatus } from '@/hooks/useOrderStatus';
 
-interface ProgressStep {
+export interface ProgressStep {
   id: string;
   label: string;
   description?: string;
+  completed?: boolean;
   icon?: React.ComponentType<any>;
   estimatedDuration?: number; // in hours
 }
 
 interface ProgressTrackerProps {
-  currentStatus: OrderStatus;
+  currentStatus?: OrderStatus;
   steps?: ProgressStep[];
   showTimeline?: boolean;
   showEstimates?: boolean;
@@ -59,22 +60,34 @@ export function ProgressTracker({
   size = 'md',
   className
 }: ProgressTrackerProps) {
-  const { progress, isCancelled } = useOrderStatus(currentStatus);
+  const orderStatus = currentStatus ? useOrderStatus(currentStatus) : null;
+  const { progress = 0, isCancelled = false } = orderStatus || {};
   
   const currentStepIndex = useMemo(() => {
+    if (!currentStatus) return -1;
     const statusOrder = ['created', 'paid', 'processing', 'completed'];
     return statusOrder.indexOf(currentStatus);
   }, [currentStatus]);
 
-  const getStepStatus = (index: number) => {
-    if (isCancelled) return 'cancelled';
-    if (index < currentStepIndex) return 'completed';
-    if (index === currentStepIndex) return 'current';
+  const getStepStatus = (index: number, step: ProgressStep) => {
+    // If step has explicit completed property, use it
+    if (step.completed !== undefined) {
+      return step.completed ? 'completed' : 'pending';
+    }
+    
+    // Use order status logic if available
+    if (currentStatus) {
+      if (isCancelled) return 'cancelled';
+      if (index < currentStepIndex) return 'completed';
+      if (index === currentStepIndex) return 'current';
+      return 'pending';
+    }
+    
     return 'pending';
   };
 
   const getStepIcon = (step: ProgressStep, index: number) => {
-    const status = getStepStatus(index);
+    const status = getStepStatus(index, step);
     const iconSize = size === 'sm' ? 'w-4 h-4' : size === 'lg' ? 'w-6 h-6' : 'w-5 h-5';
     
     if (status === 'cancelled') {
@@ -126,7 +139,7 @@ export function ProgressTracker({
 
       <div className={stepContainerClasses}>
         {steps.map((step, index) => {
-          const status = getStepStatus(index);
+          const status = getStepStatus(index, step);
           const isActive = status === 'current';
           const isCompleted = status === 'completed';
           const isCancelledStep = status === 'cancelled';

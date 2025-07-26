@@ -21,29 +21,40 @@ interface QuickActionsProps {
   actions: QuickAction[];
   size?: ActionSize;
   orientation?: 'horizontal' | 'vertical';
+  variant?: 'grid' | 'list' | 'compact' | 'mobile';
   maxActions?: number;
   className?: string;
-  compact?: boolean;
 }
 
 export function QuickActions({
   actions,
   size = 'md',
   orientation = 'horizontal',
+  variant = 'list',
   maxActions,
-  className,
-  compact = false
+  className
 }: QuickActionsProps) {
   const visibleActions = maxActions ? actions.slice(0, maxActions) : actions;
   const hasOverflow = maxActions && actions.length > maxActions;
   const overflowCount = hasOverflow ? actions.length - maxActions : 0;
 
-  const containerClasses = cn(
-    'flex gap-2',
-    orientation === 'vertical' ? 'flex-col' : 'flex-row items-center',
-    compact && 'gap-1',
-    className
-  );
+  const getContainerClasses = () => {
+    switch (variant) {
+      case 'grid':
+        return 'grid grid-cols-2 gap-2';
+      case 'mobile':
+        return 'flex flex-col space-y-2';
+      case 'compact':
+        return 'flex gap-1';
+      default:
+        return cn(
+          'flex gap-2',
+          orientation === 'vertical' ? 'flex-col' : 'flex-row items-center'
+        );
+    }
+  };
+
+  const containerClasses = cn(getContainerClasses(), className);
 
   return (
     <div className={containerClasses}>
@@ -58,9 +69,12 @@ export function QuickActions({
           tooltip={action.tooltip}
           badge={action.badge}
           icon={action.icon}
-          compact={compact}
+          className={cn(
+            variant === 'mobile' && 'w-full justify-start',
+            variant === 'compact' && 'px-2'
+          )}
         >
-          {!compact && action.label}
+          {variant !== 'compact' && action.label}
         </ActionButton>
       ))}
       
@@ -70,7 +84,6 @@ export function QuickActions({
           variant="ghost"
           onClick={() => {}}
           tooltip={`Mais ${overflowCount} ações`}
-          compact={compact}
         >
           +{overflowCount}
         </ActionButton>
@@ -80,7 +93,7 @@ export function QuickActions({
 }
 
 // Pre-configured action sets for common use cases
-export const orderActions = {
+export const createQuickAction = {
   view: (onView: () => void): QuickAction => ({
     id: 'view',
     label: 'Detalhes',

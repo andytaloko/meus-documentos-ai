@@ -5,8 +5,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ArrowLeft, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from '@/hooks/use-toast';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { useNotifications } from '@/hooks/useNotifications';
+import { StatusBadge } from '@/components/common/StatusBadge';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -17,6 +20,8 @@ export default function Login() {
   
   const { signIn, user } = useAuth();
   const navigate = useNavigate();
+  const { isMobile, shouldUseModal } = useResponsiveLayout();
+  const { success, error: notifyError } = useNotifications();
 
   useEffect(() => {
     if (user) {
@@ -38,11 +43,9 @@ export default function Login() {
     
     if (signInError) {
       setError('Email ou senha incorretos');
+      notifyError('Falha no login', 'Verifique suas credenciais e tente novamente');
     } else {
-      toast({
-        title: "Login realizado com sucesso!",
-        description: "Bem-vindo de volta.",
-      });
+      success('Login realizado com sucesso!', 'Bem-vindo de volta');
       navigate('/dashboard');
     }
     
@@ -51,14 +54,14 @@ export default function Login() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+      <Card className={`w-full max-w-md animate-fade-in ${isMobile ? 'mx-2' : ''}`}>
         <CardHeader className="space-y-1">
           <div className="flex items-center gap-2 mb-4">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => navigate('/')}
-              className="p-2"
+              className="p-2 hover-scale"
             >
               <ArrowLeft className="h-4 w-4" />
             </Button>
@@ -126,11 +129,26 @@ export default function Login() {
           <CardFooter className="flex flex-col space-y-4">
             <Button 
               type="submit" 
-              className="w-full" 
+              className="w-full hover-scale" 
               disabled={loading}
             >
-              {loading ? 'Entrando...' : 'Entrar'}
+              {loading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Entrando...
+                </>
+              ) : (
+                'Entrar'
+              )}
             </Button>
+            
+            {loading && (
+              <div className="flex items-center justify-center pt-2">
+                <StatusBadge variant="secondary" className="text-xs">
+                  Validando credenciais...
+                </StatusBadge>
+              </div>
+            )}
             
             <div className="text-center space-y-2">
               <p className="text-sm text-muted-foreground">

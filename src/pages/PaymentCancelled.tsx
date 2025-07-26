@@ -1,20 +1,52 @@
 import { Link } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { XCircle, ArrowLeft, MessageCircle } from "lucide-react";
+import { XCircle, ArrowLeft, MessageCircle, Home, RefreshCw } from "lucide-react";
+import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
+import { useNotifications } from "@/hooks/useNotifications";
+import { StatusBadge } from "@/components/common/StatusBadge";
+import { ActionButton } from "@/components/common/ActionButton";
+import { QuickActions } from "@/components/common/QuickActions";
 
 const PaymentCancelled = () => {
+  const { isMobile, shouldUseModal } = useResponsiveLayout();
+  const { warning } = useNotifications();
+
+  const quickActions = [
+    {
+      icon: RefreshCw,
+      label: 'Tentar novamente',
+      onClick: () => window.location.href = '/',
+      variant: 'default' as const
+    },
+    {
+      icon: MessageCircle,
+      label: 'Suporte',
+      onClick: () => window.open('https://wa.me/5511999999999?text=Olá, tive um problema com o pagamento do meu pedido', '_blank'),
+      variant: 'outline' as const
+    },
+    {
+      icon: Home,
+      label: 'Início',
+      onClick: () => window.location.href = '/',
+      variant: 'outline' as const
+    }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/5 to-secondary/5 p-4">
-      <div className="max-w-md mx-auto pt-16">
-        <Card>
+      <div className={`max-w-md mx-auto pt-16 ${isMobile ? 'px-2' : ''}`}>
+        <Card className="animate-fade-in hover-scale">
           <CardHeader className="text-center">
             <div className="flex justify-center mb-4">
-              <XCircle className="h-16 w-16 text-orange-500" />
+              <XCircle className="h-16 w-16 text-orange-500 animate-scale-in" />
             </div>
             <CardTitle className="text-2xl text-orange-600">
               Pagamento Cancelado
             </CardTitle>
+            <StatusBadge variant="destructive" className="mt-2 mx-auto">
+              Transação não concluída
+            </StatusBadge>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center">
@@ -27,26 +59,11 @@ const PaymentCancelled = () => {
               </p>
             </div>
 
-            <div className="space-y-3">
-              <Link to="/" className="block">
-                <Button className="w-full">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Tentar novamente
-                </Button>
-              </Link>
-              
-              <a 
-                href="https://wa.me/5511999999999?text=Olá, tive um problema com o pagamento do meu pedido e gostaria de ajuda"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block"
-              >
-                <Button variant="outline" className="w-full">
-                  <MessageCircle className="h-4 w-4 mr-2" />
-                  Falar no WhatsApp
-                </Button>
-              </a>
-            </div>
+            <QuickActions 
+              actions={quickActions}
+              variant={isMobile ? "mobile" : "list"}
+              className="space-y-3"
+            />
 
             <div className="text-center text-xs text-muted-foreground pt-4 border-t">
               <p>

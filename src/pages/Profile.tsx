@@ -7,8 +7,14 @@ import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { ArrowLeft, Save, User } from 'lucide-react';
+import { ArrowLeft, Save, User, Loader2, Settings, Edit } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useResponsiveLayout } from '@/hooks/useResponsiveLayout';
+import { useNotifications } from '@/hooks/useNotifications';
+import { StatusBadge } from '@/components/common/StatusBadge';
+import { QuickActions } from '@/components/common/QuickActions';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
+import { LoadingSkeleton } from '@/components/dashboard/LoadingSkeleton';
 
 interface Profile {
   display_name: string;
@@ -29,6 +35,8 @@ export default function Profile() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isMobile, shouldUseModal } = useResponsiveLayout();
+  const { success, error: notifyError } = useNotifications();
 
   useEffect(() => {
     if (!user) {
@@ -81,14 +89,11 @@ export default function Profile() {
 
       if (error) throw error;
 
-      toast({
-        title: 'Perfil Atualizado',
-        description: 'Suas informações foram salvas com sucesso.',
-      });
-      
+      success('Perfil Atualizado', 'Suas informações foram salvas com sucesso');
       navigate('/dashboard');
     } catch (error: any) {
       setError(error.message);
+      notifyError('Erro ao salvar', 'Não foi possível atualizar o perfil');
     } finally {
       setSaving(false);
     }
@@ -98,12 +103,30 @@ export default function Profile() {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
 
+  const quickActions = [
+    {
+      icon: Save,
+      label: 'Salvar',
+      onClick: () => {
+        const form = document.querySelector('form') as HTMLFormElement;
+        form?.requestSubmit();
+      },
+      variant: 'default' as const,
+      disabled: saving
+    },
+    {
+      icon: Settings,
+      label: 'Configurações',
+      onClick: () => navigate('/settings'),
+      variant: 'outline' as const
+    }
+  ];
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-          <p className="mt-2 text-muted-foreground">Carregando...</p>
+      <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
+        <div className="container mx-auto max-w-2xl">
+          <LoadingSkeleton />
         </div>
       </div>
     );
@@ -112,24 +135,42 @@ export default function Profile() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-secondary/20 p-4">
       <div className="container mx-auto max-w-2xl">
-        <div className="flex items-center gap-2 mb-6">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={() => navigate('/dashboard')}
-            className="p-2"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <span className="text-sm text-muted-foreground">Voltar ao Dashboard</span>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => navigate('/dashboard')}
+              className="p-2 hover-scale"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <span className="text-sm text-muted-foreground">Voltar ao Dashboard</span>
+          </div>
+          <NotificationCenter />
         </div>
 
-        <Card>
+        <Card className="animate-fade-in hover-scale">
           <CardHeader>
-            <div className="flex items-center gap-2">
-              <User className="h-5 w-5" />
-              <CardTitle>Meu Perfil</CardTitle>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <User className="h-5 w-5" />
+                <CardTitle>Meu Perfil</CardTitle>
+              </div>
+              {saving && (
+                <StatusBadge variant="secondary" className="text-xs">
+                  <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                  Salvando...
+                </StatusBadge>
+              )}
             </div>
+            {!isMobile && (
+              <QuickActions 
+                actions={quickActions}
+                variant="compact"
+                className="mt-4"
+              />
+            )}
           </CardHeader>
           
           <CardContent>
@@ -189,14 +230,36 @@ export default function Profile() {
               </div>
 
               <div className="flex gap-4 pt-4">
-                <Button type="submit" disabled={saving} className="flex-1">
-                  <Save className="h-4 w-4 mr-2" />
-                  {saving ? 'Salvando...' : 'Salvar Alterações'}
+                <Button type="submit" disabled={saving} className={`flex-1 hover-scale ${isMobile ? 'text-sm' : ''}`}>
+                  {saving ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Salvando...
+                    </>
+                  ) : (
+                    <>
+                      <Save className="h-4 w-4 mr-2" />
+                      Salvar Alterações
+                    </>
+                  )}
                 </Button>
-                <Button type="button" variant="outline" onClick={() => navigate('/dashboard')}>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={() => navigate('/dashboard')}
+                  className="hover-scale"
+                >
                   Cancelar
                 </Button>
               </div>
+              
+              {isMobile && (
+                <QuickActions 
+                  actions={quickActions}
+                  variant="mobile"
+                  className="mt-4"
+                />
+              )}
             </form>
           </CardContent>
         </Card>
