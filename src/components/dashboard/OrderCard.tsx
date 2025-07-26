@@ -96,27 +96,30 @@ Como posso te ajudar com este pedido? 🤔`
   ];
 
   return (
-    <Card className="group hover:shadow-lg transition-all duration-300 hover:-translate-y-1 animate-fade-in">
-      <CardContent className="p-6">
+    <Card className="group hover:shadow-premium transition-all duration-500 hover:-translate-y-2 animate-fadeInUp border-0 shadow-card bg-gradient-to-br from-card to-card/95 backdrop-blur-sm">
+      <CardContent className="p-6 relative overflow-hidden">
+        {/* Premium subtle overlay */}
+        <div className="absolute inset-0 bg-gradient-glass opacity-40 pointer-events-none" />
+        
         {/* Header */}
-        <div className="flex items-start justify-between mb-4">
+        <div className="flex items-start justify-between mb-5 relative z-10">
           <div className="flex-1">
-            <h3 className="font-semibold text-lg leading-tight mb-1">
+            <h3 className="font-bold text-lg leading-tight mb-2 text-foreground/90 group-hover:text-foreground transition-colors duration-300">
               {order.services?.name || 'Serviço'}
             </h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground font-medium">
               {order.services?.category}
             </p>
           </div>
           <StatusBadge 
             status={order.status as any}
             showIcon={true}
-            className="animate-scale-in"
+            className="animate-fadeInUp shadow-sm ring-1 ring-border/20 backdrop-blur-sm"
           />
         </div>
 
         {/* Progress Tracker */}
-        <div className="mb-4">
+        <div className="mb-6 relative z-10 bg-secondary/30 rounded-lg p-4 backdrop-blur-sm border border-border/40">
           <ProgressTracker 
             currentStatus={order.status as any}
             showTimeline={!isMobile}
@@ -126,40 +129,47 @@ Como posso te ajudar com este pedido? 🤔`
         </div>
 
         {/* Info Grid */}
-        <div className="grid grid-cols-2 gap-4 mb-4">
-          <div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-              <CreditCard className="w-3 h-3" />
+        <div className="grid grid-cols-2 gap-6 mb-6 relative z-10">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground/80 font-medium">
+              <CreditCard className="w-3.5 h-3.5" />
               Pagamento
             </div>
-            <p className={`text-sm font-medium ${
-              order.payment_status === 'paid' ? 'text-success' : 'text-warning'
+            <p className={`text-sm font-bold flex items-center gap-2 ${
+              order.payment_status === 'paid' 
+                ? 'text-emerald-600 dark:text-emerald-400' 
+                : 'text-amber-600 dark:text-amber-400'
             }`}>
+              <span className={`w-2 h-2 rounded-full ${
+                order.payment_status === 'paid' 
+                  ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' 
+                  : 'bg-amber-500 shadow-sm shadow-amber-500/50'
+              }`} />
               {order.payment_status === 'paid' ? 'Pago' : 'Pendente'}
             </p>
           </div>
-          <div>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground mb-1">
-              <Clock className="w-3 h-3" />
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs text-muted-foreground/80 font-medium">
+              <Clock className="w-3.5 h-3.5" />
               Valor
             </div>
-            <p className="text-sm font-semibold">
+            <p className="text-sm font-bold text-foreground bg-gradient-to-r from-primary/80 to-primary bg-clip-text text-transparent">
               {formatPrice(order.total_amount)}
             </p>
           </div>
         </div>
 
         {/* Dates */}
-        <div className="grid grid-cols-2 gap-4 mb-6 text-xs">
-          <div>
-            <span className="text-muted-foreground">Pedido em:</span>
-            <p className="font-medium">
+        <div className="grid grid-cols-2 gap-6 mb-8 text-xs relative z-10">
+          <div className="space-y-1">
+            <span className="text-muted-foreground/80 font-medium">Pedido em:</span>
+            <p className="font-semibold text-foreground/90">
               {new Date(order.created_at).toLocaleDateString('pt-BR')}
             </p>
           </div>
-          <div>
-            <span className="text-muted-foreground">Previsão:</span>
-            <p className="font-medium">
+          <div className="space-y-1">
+            <span className="text-muted-foreground/80 font-medium">Previsão:</span>
+            <p className="font-semibold text-foreground/90">
               {order.estimated_completion_date 
                 ? new Date(order.estimated_completion_date).toLocaleDateString('pt-BR')
                 : 'A definir'
@@ -169,15 +179,18 @@ Como posso te ajudar com este pedido? 🤔`
         </div>
 
         {/* Quick Actions */}
+        <div className="relative z-10 bg-secondary/20 rounded-lg p-3 backdrop-blur-sm border border-border/30">
           <QuickActions 
             actions={cardActions}
             size="sm"
             maxActions={isMobile ? 2 : 3}
+            className="gap-3"
           />
+        </div>
 
         {/* Order ID */}
-        <div className="mt-3 pt-3 border-t text-xs text-muted-foreground">
-          ID: #{order.id.slice(-8).toUpperCase()}
+        <div className="mt-4 pt-4 border-t border-border/40 text-xs text-muted-foreground/70 relative z-10">
+          <span className="font-mono font-medium">ID: #{order.id.slice(-8).toUpperCase()}</span>
         </div>
       </CardContent>
     </Card>
