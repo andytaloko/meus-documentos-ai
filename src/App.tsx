@@ -7,6 +7,7 @@ import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { ChatBotProvider } from "@/contexts/ChatBotContext";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import { FloatingChatButton } from "@/components/chat/FloatingChatButton";
+import { ChatPanel } from "@/components/chat/ChatPanel";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Login from "./pages/Login";
@@ -55,6 +56,7 @@ const App = () => (
             </Routes>
             <ConditionalNotificationCenter />
             <FloatingChatButton />
+            <ChatPanel />
           </ChatBotProvider>
         </AuthProvider>
       </BrowserRouter>
