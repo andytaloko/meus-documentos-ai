@@ -55,6 +55,9 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const ORDERS_PER_PAGE = 10;
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -87,6 +90,8 @@ export default function Dashboard() {
     }
 
     setFilteredOrders(filtered);
+    setTotalPages(Math.ceil(filtered.length / ORDERS_PER_PAGE));
+    setCurrentPage(1); // Reset to first page when filters change
   }, [orders, searchTerm, statusFilter]);
 
   const fetchUserData = async () => {
