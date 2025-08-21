@@ -4,8 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/hooks/useAuth";
+import { ChatProvider, useChat } from "@/contexts/ChatContext";
 import { NotificationCenter } from "@/components/notifications/NotificationCenter";
 import FloatingChatTrigger from "@/components/chat/FloatingChatTrigger";
+import ChatBot from "@/components/ChatBot";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Login from "./pages/Login";
@@ -33,6 +35,19 @@ function ConditionalNotificationCenter() {
   );
 }
 
+function GlobalChatBot() {
+  const { isOpen, setIsOpen, orderContext } = useChat();
+  
+  return (
+    <ChatBot 
+      isOpen={isOpen} 
+      onClose={() => setIsOpen(false)} 
+      selectedService={null}
+      orderContext={orderContext}
+    />
+  );
+}
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -40,19 +55,22 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
-          <Routes>
-            <Route path="/" element={<Index />} />
-            <Route path="/auth" element={<Auth />} />
-            <Route path="/auth/login" element={<Login />} />
-            <Route path="/auth/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/payment/success" element={<PaymentSuccess />} />
-            <Route path="/payment/cancelled" element={<PaymentCancelled />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-          <ConditionalNotificationCenter />
-          <FloatingChatTrigger />
+          <ChatProvider>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/auth" element={<Auth />} />
+              <Route path="/auth/login" element={<Login />} />
+              <Route path="/auth/signup" element={<Signup />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/payment/success" element={<PaymentSuccess />} />
+              <Route path="/payment/cancelled" element={<PaymentCancelled />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+            <ConditionalNotificationCenter />
+            <FloatingChatTrigger />
+            <GlobalChatBot />
+          </ChatProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

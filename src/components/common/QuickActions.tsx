@@ -15,6 +15,7 @@ export interface QuickAction {
   loading?: boolean;
   tooltip?: string;
   badge?: string | number;
+  customComponent?: ReactNode;
 }
 
 interface QuickActionsProps {
@@ -59,23 +60,29 @@ export function QuickActions({
   return (
     <div className={containerClasses}>
       {visibleActions.map((action) => (
-        <ActionButton
-          key={action.id}
-          size={size}
-          variant={action.variant || 'outline'}
-          onClick={action.onClick}
-          disabled={action.disabled}
-          loading={action.loading}
-          tooltip={action.tooltip}
-          badge={action.badge}
-          icon={action.icon}
-          className={cn(
-            variant === 'mobile' && 'w-full justify-start',
-            variant === 'compact' && 'px-2'
-          )}
-        >
-          {variant !== 'compact' && action.label}
-        </ActionButton>
+        action.customComponent ? (
+          <div key={action.id} className="flex-shrink-0">
+            {action.customComponent}
+          </div>
+        ) : (
+          <ActionButton
+            key={action.id}
+            size={size}
+            variant={action.variant || 'outline'}
+            onClick={action.onClick}
+            disabled={action.disabled}
+            loading={action.loading}
+            tooltip={action.tooltip}
+            badge={action.badge}
+            icon={action.icon}
+            className={cn(
+              variant === 'mobile' && 'w-full justify-start',
+              variant === 'compact' && 'px-2'
+            )}
+          >
+            {variant !== 'compact' && action.label}
+          </ActionButton>
+        )
       ))}
       
       {hasOverflow && (

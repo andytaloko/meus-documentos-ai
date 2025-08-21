@@ -5,9 +5,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
-import { Send, Bot, User, X, FileText, Clock, DollarSign } from "lucide-react";
+import { Send, Bot, User, X, FileText, Clock, DollarSign, Upload, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useChat, OrderContext } from "@/contexts/ChatContext";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { TypingIndicator } from "./chat/TypingIndicator";
+import { QuickReplies } from "./chat/QuickReplies";
+import { useTypingIndicator } from "@/hooks/useTypingIndicator";
 import PaymentModal from "./PaymentModal";
 
 interface Service {
@@ -31,6 +36,7 @@ interface ChatBotProps {
   isOpen: boolean;
   onClose: () => void;
   selectedService?: Service | null;
+  orderContext?: OrderContext | null;
 }
 
 const CONVERSATION_STEPS = {
@@ -41,10 +47,13 @@ const CONVERSATION_STEPS = {
   FEE_CALCULATION: 5,
   ORDER_CREATION: 6,
   CHECKOUT: 7,
-  STATUS_TRACKING: 8
+  STATUS_TRACKING: 8,
+  ORDER_STATUS_INQUIRY: 9,
+  DOCUMENT_UPLOAD: 10,
+  ORDER_UPDATE_REQUEST: 11
 };
 
-const ChatBot = ({ isOpen, onClose, selectedService }: ChatBotProps) => {
+const ChatBot = ({ isOpen, onClose, selectedService, orderContext }: ChatBotProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [inputMessage, setInputMessage] = useState("");
   const [currentStep, setCurrentStep] = useState(CONVERSATION_STEPS.GREETING);
@@ -52,7 +61,11 @@ const ChatBot = ({ isOpen, onClose, selectedService }: ChatBotProps) => {
   const [sessionId] = useState(() => `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [userProfile, setUserProfile] = useState<any>(null);
+  const [quickReplies, setQuickReplies] = useState<Array<{id: string, label: string, value: string, icon?: React.ReactNode}>>([]);
   const { user } = useAuth();
+  const { chatType } = useChat();
+  const isMobile = useIsMobile();
+  const { isTyping, setIsTyping } = useTypingIndicator();
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,7 +75,7 @@ const ChatBot = ({ isOpen, onClose, selectedService }: ChatBotProps) => {
       }
       initializeConversation();
     }
-  }, [isOpen, selectedService, user]);
+  }, [isOpen, selectedService, orderContext, user]);
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -116,8 +129,32 @@ const ChatBot = ({ isOpen, onClose, selectedService }: ChatBotProps) => {
 
   const initializeConversation = () => {
     const welcomeMessages: Message[] = [];
+    setQuickReplies([]);
 
-    if (selectedService) {
+    if (orderContext) {
+      // Order-specific chat flow
+      welcomeMessages.push({
+        id: `msg_${Date.now()}`,
+        type: 'bot',
+        content: `Olá! 👋 Estou aqui para ajudar com seu pedido **#${orderContext.id.slice(-8).toUpperCase()}**.
+
+**${orderContext.services?.name || 'Serviço'}**
+**Status atual:** ${getStatusLabel(orderContext.status)}
+**Pagamento:** ${orderContext.payment_status === 'paid' ? 'Pago ✅' : 'Pendente ⏳'}
+
+Como posso te ajudar hoje?`,
+        timestamp: new Date()
+      });
+
+      setQuickReplies([
+        { id: 'status', label: 'Ver Status', value: 'STATUS', icon: <CheckCircle className="w-3 h-3" /> },
+        { id: 'upload', label: 'Enviar Docs', value: 'UPLOAD', icon: <Upload className="w-3 h-3" /> },
+        { id: 'update', label: 'Solicitar Update', value: 'UPDATE' }
+      ]);
+
+      setCurrentStep(CONVERSATION_STEPS.ORDER_STATUS_INQUIRY);
+      setConversationData({ orderContext });
+    } else if (selectedService) {
       welcomeMessages.push({
         id: `msg_${Date.now()}`,
         type: 'bot',
@@ -172,6 +209,191 @@ Que tipo de documento você precisa?`,
     }
 
     setMessages(welcomeMessages);
+  };
+
+  const getStatusLabel = (status: string) => {
+    const statusMap: Record<string, string> = {
+      pending: 'Pendente',
+      processing: 'Em Processamento',
+      documents_requested: 'Documentos Solicitados',
+      in_progress: 'Em Andamento',
+      completed: 'Concluído',
+      cancelled: 'Cancelado'
+    };
+    return statusMap[status] || status;
+  };
+
+  const handleOrderStatusInquiry = async (userInput: string) => {
+    const input = userInput.toUpperCase();
+    
+    if (input === 'STATUS') {
+      setIsTyping(true);
+      
+      setTimeout(() => {
+        setIsTyping(false);
+        addBotMessage(`📊 **Status Detalhado do Pedido #${orderContext?.id.slice(-8).toUpperCase()}**
+
+**Documento:** ${orderContext?.services?.name}
+**Status:** ${getStatusLabel(orderContext?.status || '')}
+**Pagamento:** ${orderContext?.payment_status === 'paid' ? 'Confirmado ✅' : 'Pendente ⏳'}
+**Valor:** ${formatPrice(orderContext?.total_amount || 0)}
+**Data do Pedido:** ${new Date(orderContext?.created_at || '').toLocaleDateString('pt-BR')}
+**Previsão:** ${orderContext?.estimated_completion_date 
+  ? new Date(orderContext.estimated_completion_date).toLocaleDateString('pt-BR')
+  : 'A definir'}
+
+${getStatusDescription(orderContext?.status || '')}`);
+
+        setQuickReplies([
+          { id: 'upload', label: 'Enviar Documentos', value: 'UPLOAD', icon: <Upload className="w-3 h-3" /> },
+          { id: 'update', label: 'Solicitar Atualização', value: 'UPDATE' },
+          { id: 'help', label: 'Mais Ajuda', value: 'HELP' }
+        ]);
+      }, 1500);
+    } else if (input === 'UPLOAD') {
+      setCurrentStep(CONVERSATION_STEPS.DOCUMENT_UPLOAD);
+      addBotMessage(`📤 **Upload de Documentos**
+
+Para enviar documentos para seu pedido, você pode:
+
+1. **📧 Por E-mail:** Envie para documentos@meusdocumentos.ai com o assunto "Pedido #${orderContext?.id.slice(-8).toUpperCase()}"
+
+2. **📱 Por WhatsApp:** (11) 9999-9999
+
+3. **💬 Aqui no Chat:** Descreva quais documentos você tem disponíveis
+
+Que tipo de documento você gostaria de enviar?`);
+
+      setQuickReplies([
+        { id: 'email', label: 'Enviar por E-mail', value: 'EMAIL' },
+        { id: 'whatsapp', label: 'Enviar por WhatsApp', value: 'WHATSAPP' },
+        { id: 'describe', label: 'Descrever Aqui', value: 'DESCRIBE' }
+      ]);
+    } else if (input === 'UPDATE') {
+      setCurrentStep(CONVERSATION_STEPS.ORDER_UPDATE_REQUEST);
+      addBotMessage(`🔄 **Solicitar Atualização**
+
+Vou registrar sua solicitação de atualização para o pedido #${orderContext?.id.slice(-8).toUpperCase()}.
+
+Nossa equipe será notificada e entrará em contato em até 24 horas úteis.
+
+Gostaria de adicionar alguma observação específica sobre sua solicitação?`);
+
+      setQuickReplies([
+        { id: 'urgent', label: 'É Urgente', value: 'URGENT' },
+        { id: 'normal', label: 'Prazo Normal', value: 'NORMAL' },
+        { id: 'question', label: 'Tenho Dúvidas', value: 'QUESTION' }
+      ]);
+    } else {
+      addBotMessage("Como posso te ajudar com seu pedido? Digite **STATUS** para ver informações detalhadas, **UPLOAD** para enviar documentos ou **UPDATE** para solicitar uma atualização.");
+    }
+  };
+
+  const getStatusDescription = (status: string) => {
+    const descriptions: Record<string, string> = {
+      pending: '⏳ Seu pedido foi recebido e está na fila de processamento.',
+      processing: '🔄 Nossa equipe está analisando seu pedido e coletando informações.',
+      documents_requested: '📋 Documentos adicionais são necessários. Verifique seu e-mail.',
+      in_progress: '⚡ Seu documento está sendo processado no órgão oficial.',
+      completed: '🎉 Seu documento está pronto! Verifique seu e-mail.',
+      cancelled: '❌ Este pedido foi cancelado.'
+    };
+    return descriptions[status] || '';
+  };
+
+  const handleDocumentUpload = (userInput: string) => {
+    const input = userInput.toUpperCase();
+    
+    if (input === 'EMAIL') {
+      addBotMessage(`📧 **Envio por E-mail**
+
+Envie seus documentos para:
+**documentos@meusdocumentos.ai**
+
+**Assunto obrigatório:** Pedido #${orderContext?.id.slice(-8).toUpperCase()}
+
+**Formatos aceitos:** PDF, JPG, PNG (máx. 10MB cada)
+
+Você receberá uma confirmação automática quando os documentos forem recebidos.`);
+    } else if (input === 'WHATSAPP') {
+      addBotMessage(`📱 **Envio por WhatsApp**
+
+Envie seus documentos para:
+**(11) 9999-9999**
+
+**Mencione:** Pedido #${orderContext?.id.slice(-8).toUpperCase()}
+
+Nossa equipe confirmará o recebimento em até 1 hora.`);
+    } else if (input === 'DESCRIBE') {
+      addBotMessage(`💬 **Descrever Documentos**
+
+Descreva quais documentos você tem disponíveis para o pedido #${orderContext?.id.slice(-8).toUpperCase()}:
+
+Exemplo: "Tenho RG, CPF e comprovante de residência em PDF"`);
+      
+      setCurrentStep(CONVERSATION_STEPS.REQUIREMENTS_GATHERING);
+    } else {
+      addBotMessage("Selecione uma forma de envio dos documentos.");
+    }
+  };
+
+  const handleOrderUpdateRequest = async (userInput: string) => {
+    const input = userInput.toUpperCase();
+    
+    try {
+      // Save update request to database
+      await supabase
+        .from('conversations')
+        .insert([{
+          session_id: sessionId,
+          messages: JSON.stringify([...messages, { 
+            type: 'user', 
+            content: userInput, 
+            timestamp: new Date() 
+          }]),
+          current_step: currentStep,
+          conversation_type: 'order_specific',
+          order_id: orderContext?.id,
+          collected_data: { ...conversationData, updateRequest: userInput, priority: input },
+          status: 'active',
+          user_id: user?.id || null
+        }]);
+
+      if (input === 'URGENT') {
+        addBotMessage(`⚡ **Solicitação Urgente Registrada**
+
+Sua solicitação foi marcada como **URGENTE**.
+
+Nossa equipe será notificada imediatamente e entrará em contato em até **4 horas úteis**.
+
+Pedido: #${orderContext?.id.slice(-8).toUpperCase()}`);
+      } else if (input === 'NORMAL') {
+        addBotMessage(`✅ **Solicitação Registrada**
+
+Sua solicitação foi registrada com prioridade normal.
+
+Nossa equipe entrará em contato em até **24 horas úteis**.
+
+Pedido: #${orderContext?.id.slice(-8).toUpperCase()}`);
+      } else {
+        addBotMessage(`❓ **Dúvida Registrada**
+
+Sua dúvida foi registrada: "${userInput}"
+
+Nossa equipe responderá em até **24 horas úteis**.
+
+Pedido: #${orderContext?.id.slice(-8).toUpperCase()}`);
+      }
+
+      setQuickReplies([
+        { id: 'status', label: 'Ver Status', value: 'STATUS' },
+        { id: 'new', label: 'Nova Solicitação', value: 'NEW' }
+      ]);
+
+    } catch (error) {
+      console.error('Error saving update request:', error);
+      addBotMessage("Desculpe, ocorreu um erro ao registrar sua solicitação. Tente novamente em alguns instantes.");
+    }
   };
 
   const addBotMessage = (content: string, service?: Service) => {
@@ -469,6 +691,8 @@ Tempo restante estimado: ${conversationData.selectedService.estimated_days - 1} 
           messages: JSON.stringify(messages),
           current_step: currentStep,
           service_type: conversationData.selectedService?.category,
+          conversation_type: chatType,
+          order_id: orderContext?.id || null,
           collected_data: conversationData,
           status: 'completed',
           user_id: user?.id || null
@@ -502,6 +726,15 @@ Tempo restante estimado: ${conversationData.selectedService.estimated_days - 1} 
           break;
         case CONVERSATION_STEPS.STATUS_TRACKING:
           handleStatusTracking(userInput);
+          break;
+        case CONVERSATION_STEPS.ORDER_STATUS_INQUIRY:
+          handleOrderStatusInquiry(userInput);
+          break;
+        case CONVERSATION_STEPS.DOCUMENT_UPLOAD:
+          handleDocumentUpload(userInput);
+          break;
+        case CONVERSATION_STEPS.ORDER_UPDATE_REQUEST:
+          handleOrderUpdateRequest(userInput);
           break;
         default:
           addBotMessage("Desculpe, não entendi. Pode repetir?");
@@ -597,31 +830,50 @@ Tempo restante estimado: ${conversationData.selectedService.estimated_days - 1} 
                 </div>
               </div>
             ))}
+            <TypingIndicator visible={isTyping} />
           </div>
         </ScrollArea>
 
-        <div className="border-t p-4">
-          <div className="flex space-x-2">
-            <Input
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              onKeyPress={handleKeyPress}
-              placeholder="Digite sua mensagem..."
-              className="flex-1"
+        <div className="border-t">
+          {quickReplies.length > 0 && (
+            <QuickReplies
+              replies={quickReplies}
+              onReply={(value) => {
+                setInputMessage(value);
+                setTimeout(() => handleSendMessage(), 100);
+              }}
+              className="border-b"
             />
-            <Button onClick={handleSendMessage} size="icon">
-              <Send className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="flex flex-wrap gap-1 mt-2">
-            <Badge variant="outline" className="text-xs">
-              Step {currentStep}/8
-            </Badge>
-            {conversationData.selectedService && (
-              <Badge variant="secondary" className="text-xs">
-                {conversationData.selectedService.name}
+          )}
+          <div className="p-4">
+            <div className="flex space-x-2">
+              <Input
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder={orderContext ? "Pergunte sobre seu pedido..." : "Digite sua mensagem..."}
+                className="flex-1"
+                disabled={isTyping}
+              />
+              <Button onClick={handleSendMessage} size="icon" disabled={isTyping || !inputMessage.trim()}>
+                <Send className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex flex-wrap gap-1 mt-2 px-4 pb-2">
+              <Badge variant="outline" className="text-xs">
+                Step {currentStep}/11
               </Badge>
-            )}
+              {conversationData.selectedService && (
+                <Badge variant="secondary" className="text-xs">
+                  {conversationData.selectedService.name}
+                </Badge>
+              )}
+              {orderContext && (
+                <Badge variant="default" className="text-xs">
+                  Pedido #{orderContext.id.slice(-8).toUpperCase()}
+                </Badge>
+              )}
+            </div>
           </div>
         </div>
       </DialogContent>

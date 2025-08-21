@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -17,10 +17,12 @@ export type Database = {
       conversations: {
         Row: {
           collected_data: Json | null
+          conversation_type: string | null
           created_at: string
           current_step: number | null
           id: string
           messages: Json | null
+          order_id: string | null
           service_type: string | null
           session_id: string
           status: string | null
@@ -29,10 +31,12 @@ export type Database = {
         }
         Insert: {
           collected_data?: Json | null
+          conversation_type?: string | null
           created_at?: string
           current_step?: number | null
           id?: string
           messages?: Json | null
+          order_id?: string | null
           service_type?: string | null
           session_id: string
           status?: string | null
@@ -41,17 +45,27 @@ export type Database = {
         }
         Update: {
           collected_data?: Json | null
+          conversation_type?: string | null
           created_at?: string
           current_step?: number | null
           id?: string
           messages?: Json | null
+          order_id?: string | null
           service_type?: string | null
           session_id?: string
           status?: string | null
           updated_at?: string
           user_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "conversations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       orders: {
         Row: {

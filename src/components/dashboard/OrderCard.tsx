@@ -7,7 +7,8 @@ import { ProgressTracker } from "@/components/common/ProgressTracker";
 import { useOrderStatus } from "@/hooks/useOrderStatus";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { Clock, CreditCard, MessageSquare, Eye, FileText } from "lucide-react";
-// import { useChatBot } from "@/contexts/ChatBotContext"; // Temporarily removed
+import FloatingChatTrigger from "@/components/chat/FloatingChatTrigger";
+import { OrderContext } from "@/contexts/ChatContext";
 
 interface Order {
   id: string;
@@ -33,13 +34,26 @@ interface OrderCardProps {
 
 
 export function OrderCard({ order, onViewDetails }: OrderCardProps) {
-  // const { setIsOpen, addMessage } = useChatBot(); // Temporarily removed
   const orderStatus = useOrderStatus(order.status as any);
   const { isMobile, getCardSize } = useResponsiveLayout();
 
-  const handleChatAboutOrder = () => {
-    // Temporarily disabled - will be fixed later
-    console.log('Chat about order:', order.id);
+  const orderContext: OrderContext = {
+    id: order.id,
+    status: order.status,
+    payment_status: order.payment_status,
+    customer_name: order.customer_name,
+    customer_email: order.customer_email,
+    customer_phone: order.customer_phone,
+    customer_cpf: order.customer_cpf,
+    total_amount: order.total_amount,
+    estimated_completion_date: order.estimated_completion_date,
+    created_at: order.created_at,
+    services: order.services
+  };
+
+  const shouldShowChat = () => {
+    // Show chat for orders that are not cancelled
+    return order.status !== 'cancelled';
   };
 
   const formatPrice = (amount: number) => {
@@ -58,14 +72,23 @@ export function OrderCard({ order, onViewDetails }: OrderCardProps) {
       variant: 'outline' as const,
       tooltip: 'Ver detalhes completos do pedido'
     },
-    {
+    ...(shouldShowChat() ? [{
       id: 'chat',
       label: isMobile ? '' : 'Assistente',
       icon: <MessageSquare className="w-4 h-4" />,
-      onClick: handleChatAboutOrder,
+      onClick: () => {}, // FloatingChatTrigger handles this
       variant: 'outline' as const,
-      tooltip: 'Conversar sobre este pedido'
-    },
+      tooltip: 'Conversar sobre este pedido',
+      customComponent: (
+        <FloatingChatTrigger
+          orderContext={orderContext}
+          position="relative"
+          size="sm"
+          showLabel={!isMobile}
+          className="w-full h-full"
+        />
+      )
+    }] : []),
     ...(orderStatus.isCompleted ? [{
       id: 'download',
       label: '',
