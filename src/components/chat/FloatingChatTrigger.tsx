@@ -21,32 +21,35 @@ export default function FloatingChatTrigger({
   className 
 }: FloatingChatTriggerProps) {
   const [localOpen, setLocalOpen] = useState(false);
-  const { isOpen, setIsOpen, setOrderContext, setChatType } = useChat();
+  
+  // Only use chat context if we're in a position where we need global state
+  const chatContext = position === 'fixed' ? useChat() : null;
 
   const handleOpenChat = () => {
-    if (orderContext) {
-      setOrderContext(orderContext);
-      setChatType('order_specific');
+    if (position === 'fixed' && chatContext) {
+      // Global chat state management
+      if (orderContext) {
+        chatContext.setOrderContext(orderContext);
+        chatContext.setChatType('order_specific');
+      } else {
+        chatContext.setOrderContext(null);
+        chatContext.setChatType('general');
+      }
+      chatContext.setIsOpen(true);
     } else {
-      setOrderContext(null);
-      setChatType('general');
-    }
-    
-    if (position === 'fixed') {
-      setIsOpen(true);
-    } else {
+      // Local state management for embedded triggers
       setLocalOpen(true);
     }
   };
 
   const handleCloseChat = () => {
-    if (position === 'fixed') {
-      setIsOpen(false);
+    if (position === 'fixed' && chatContext) {
+      chatContext.setIsOpen(false);
+      chatContext.setOrderContext(null);
+      chatContext.setChatType('general');
     } else {
       setLocalOpen(false);
     }
-    setOrderContext(null);
-    setChatType('general');
   };
 
   const sizeClasses = {
@@ -65,7 +68,7 @@ export default function FloatingChatTrigger({
     ? "fixed bottom-6 right-6 z-50" 
     : "relative";
 
-  const chatIsOpen = position === 'fixed' ? isOpen : localOpen;
+  const chatIsOpen = position === 'fixed' ? (chatContext?.isOpen || false) : localOpen;
 
   return (
     <>

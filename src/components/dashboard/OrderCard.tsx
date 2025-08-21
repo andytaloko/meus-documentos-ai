@@ -8,6 +8,7 @@ import { useOrderStatus } from "@/hooks/useOrderStatus";
 import { useResponsiveLayout } from "@/hooks/useResponsiveLayout";
 import { Clock, CreditCard, MessageSquare, Eye, FileText } from "lucide-react";
 import FloatingChatTrigger from "@/components/chat/FloatingChatTrigger";
+import EmbeddedChatTrigger from "@/components/chat/EmbeddedChatTrigger";
 import { OrderContext } from "@/contexts/ChatContext";
 
 interface Order {
@@ -80,9 +81,8 @@ export function OrderCard({ order, onViewDetails }: OrderCardProps) {
       variant: 'outline' as const,
       tooltip: 'Conversar sobre este pedido',
       customComponent: (
-        <FloatingChatTrigger
+        <EmbeddedChatTrigger
           orderContext={orderContext}
-          position="relative"
           size="sm"
           showLabel={!isMobile}
           className="w-full h-full"
